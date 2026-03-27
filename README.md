@@ -1,6 +1,9 @@
 # zhang-llmlab.github.io
 
 基于 Astro + MDX + Pagefind + Giscus 的个人网站与作品集模板。
+* 记录笔记
+* 分享知识
+* 合作交流
 
 ## 本地启动
 
