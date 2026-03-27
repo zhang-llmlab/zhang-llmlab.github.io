@@ -1,0 +1,45 @@
+---
+const links = [
+  { href: "/", label: "首页" },
+  { href: "/posts", label: "文章" },
+  { href: "/projects", label: "作品集" },
+  { href: "/search", label: "搜索" }
+];
+---
+
+<nav class="nav card">
+  <a class="brand" href="/">zhang-llmlab</a>
+  <div class="items">
+    {links.map((link) => (
+      <a href={link.href}>{link.label}</a>
+    ))}
+  </div>
+</nav>
+
+<style>
+  .nav {
+    position: sticky;
+    top: 12px;
+    z-index: 20;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.9rem 1rem;
+    margin-bottom: 1rem;
+  }
+  .brand {
+    font-weight: 700;
+    letter-spacing: 0.4px;
+  }
+  .items {
+    display: flex;
+    gap: 0.95rem;
+    font-size: 0.95rem;
+  }
+  .items a {
+    color: var(--text-soft);
+  }
+  .items a:hover {
+    color: var(--text);
+  }
+</style>

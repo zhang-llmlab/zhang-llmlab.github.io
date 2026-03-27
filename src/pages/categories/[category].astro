@@ -1,0 +1,40 @@
+---
+import { getCollection } from "astro:content";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+
+export async function getStaticPaths() {
+  const posts = (await getCollection("posts")).filter((item) => !item.data.draft);
+  const projects = (await getCollection("projects")).filter((item) => !item.data.draft);
+  const categories = new Set<string>();
+
+  [...posts, ...projects].forEach((entry) => {
+    categories.add(entry.data.category);
+  });
+
+  return Array.from(categories).map((category) => ({ params: { category } }));
+}
+
+const { category } = Astro.params;
+const posts = (await getCollection("posts")).filter(
+  (item) => !item.data.draft && item.data.category === category
+);
+const projects = (await getCollection("projects")).filter(
+  (item) => !item.data.draft && item.data.category === category
+);
+---
+
+<BaseLayout title={`分类：${category} | zhang-llmlab`}>
+  <h1>分类：{category}</h1>
+  <h2>文章</h2>
+  <ul>
+    {posts.map((item) => (
+      <li><a href={`/posts/${item.slug}`}>{item.data.title}</a></li>
+    ))}
+  </ul>
+  <h2>项目</h2>
+  <ul>
+    {projects.map((item) => (
+      <li><a href={`/projects/${item.slug}`}>{item.data.title}</a></li>
+    ))}
+  </ul>
+</BaseLayout>

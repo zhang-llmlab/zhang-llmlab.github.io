@@ -1,0 +1,35 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+---
+
+<BaseLayout title="搜索 | zhang-llmlab">
+  <section class="card wrap">
+    <h1>全文搜索</h1>
+    <div id="search"></div>
+  </section>
+</BaseLayout>
+
+<link rel="stylesheet" href="/pagefind/pagefind-ui.css" />
+<script is:inline>
+  const initPagefind = () => {
+    if (!window.PagefindUI) return;
+    new window.PagefindUI({
+      element: "#search",
+      showImages: false,
+      translations: {
+        placeholder: "搜索文章和项目..."
+      }
+    });
+  };
+
+  const script = document.createElement("script");
+  script.src = "/pagefind/pagefind-ui.js";
+  script.onload = initPagefind;
+  document.body.appendChild(script);
+</script>
+
+<style>
+  .wrap {
+    padding: 1rem;
+  }
+</style>

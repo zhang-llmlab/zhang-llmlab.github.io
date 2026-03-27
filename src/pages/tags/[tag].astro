@@ -1,0 +1,40 @@
+---
+import { getCollection } from "astro:content";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+
+export async function getStaticPaths() {
+  const posts = (await getCollection("posts")).filter((item) => !item.data.draft);
+  const projects = (await getCollection("projects")).filter((item) => !item.data.draft);
+  const tags = new Set<string>();
+
+  [...posts, ...projects].forEach((entry) => {
+    entry.data.tags.forEach((tag) => tags.add(tag));
+  });
+
+  return Array.from(tags).map((tag) => ({ params: { tag } }));
+}
+
+const { tag } = Astro.params;
+const posts = (await getCollection("posts")).filter(
+  (item) => !item.data.draft && item.data.tags.includes(tag ?? "")
+);
+const projects = (await getCollection("projects")).filter(
+  (item) => !item.data.draft && item.data.tags.includes(tag ?? "")
+);
+---
+
+<BaseLayout title={`标签：${tag} | zhang-llmlab`}>
+  <h1>标签：{tag}</h1>
+  <h2>文章</h2>
+  <ul>
+    {posts.map((item) => (
+      <li><a href={`/posts/${item.slug}`}>{item.data.title}</a></li>
+    ))}
+  </ul>
+  <h2>项目</h2>
+  <ul>
+    {projects.map((item) => (
+      <li><a href={`/projects/${item.slug}`}>{item.data.title}</a></li>
+    ))}
+  </ul>
+</BaseLayout>

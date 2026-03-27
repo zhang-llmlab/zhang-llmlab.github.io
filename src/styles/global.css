@@ -1,0 +1,56 @@
+:root {
+  --bg: #0b1020;
+  --bg-soft: #131b33;
+  --text: #f5f7ff;
+  --text-soft: #b6bfd8;
+  --brand: #7c5cff;
+  --brand-2: #00d4ff;
+  --line: #2a3459;
+  --card: rgba(19, 27, 51, 0.75);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  background:
+    radial-gradient(1200px 600px at 0% -20%, rgba(124, 92, 255, 0.25), transparent 55%),
+    radial-gradient(800px 500px at 100% 0%, rgba(0, 212, 255, 0.22), transparent 50%),
+    var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.container {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 1.25rem;
+}
+
+.card {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--card);
+  backdrop-filter: blur(10px);
+}
+
+.muted {
+  color: var(--text-soft);
+}
+
+.tag {
+  display: inline-flex;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  color: var(--text-soft);
+  font-size: 0.8rem;
+}
