@@ -1,0 +1,52 @@
+---
+title: "AI Agent 入门 01：从工作流到 Agent 的架构差异"
+description: "用可落地的视角理解 Workflow 与 Agent 的边界，以及什么时候该引入 Agent。"
+pubDate: 2026-03-28
+updatedDate: 2026-03-28
+level: "beginner"
+audience: ["产品经理", "后端工程师", "AI 应用开发者"]
+series: "AI Agent 实战入门"
+seriesOrder: 1
+keywords: ["Workflow", "Agent", "工具调用", "规划执行"]
+toc: true
+tags: ["AI Agent", "LLM", "系统设计"]
+category: "AI/Agent"
+cover: "/covers/agent-architecture.jpg"
+draft: false
+---
+
+## 为什么会出现 Agent
+
+传统 LLM 应用更像「单轮问答」或「固定流程自动化」：输入 -> 模型 -> 输出。  
+当任务变复杂（多步骤、依赖外部工具、需要中间决策）时，固定流程会快速失效。
+
+Agent 的核心是：**让模型在约束内做决策并调用工具**。
+
+## Workflow 与 Agent 的核心区别
+
+- **Workflow**：路径预先定义，稳定但灵活性低
+- **Agent**：路径运行时决定，灵活但治理成本更高
+
+一句话：Workflow 像脚本，Agent 像带边界的“智能执行者”。
+
+## 一个最小 Agent 架构
+
+1. 任务理解（Planner）
+2. 工具执行（Tool Executor）
+3. 结果评估（Critic/Verifier）
+4. 终止条件（Done / Retry / Escalate）
+
+## 什么时候不该上 Agent
+
+- 业务流程稳定、变化极少
+- 错误成本极高且无法容错
+- 没有可观测性与回放机制
+
+## 小结
+
+先问自己：任务到底是“固定流程问题”还是“动态决策问题”。  
+前者优先 Workflow，后者再考虑 Agent。
+
+$$
+   \alpha = 10
+$$

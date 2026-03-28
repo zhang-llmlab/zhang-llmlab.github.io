@@ -5,10 +5,12 @@ import BaseLayout from "../../layouts/BaseLayout.astro";
 const posts = (await getCollection("posts"))
   .filter((item) => !item.data.draft)
   .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
+const seriesSet = new Set(posts.map((post) => post.data.series).filter(Boolean));
 ---
 
 <BaseLayout title="文章 | zhang-llmlab">
   <h1>文章</h1>
+  <p class="muted">已收录专题 {seriesSet.size} 个，<a href="/series">查看专题页</a></p>
   <div class="list">
     {posts.map((post) => (
       <a class="card row" href={`/posts/${post.slug}`}>

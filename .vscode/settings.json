@@ -1,0 +1,18 @@
+{
+  // MDX：不要用普通 Ctrl+V 贴图（只会出现 image.png 文本）。请用扩展 Paste Image：Ctrl+Alt+V，或命令面板「Paste Image」，或可选 Ctrl+Alt+Shift+V（见 paste-image.keybindings.json）。
+  // 粘贴前请先保存文件（未保存的缓冲区无法写入 public/）。需安装 mushan.vscode-paste-image。
+  // 图片目录：public/posts/<文章主文件名>/ ，插入 /posts/...（Astro 静态资源）。
+  // Linux：需 xclip。Cursor/VS Code「远程 SSH」时，Paste Image 在远端执行，xclip 读的是远端剪贴板；你在本机截图/复制一般不会出现在远端，因此会提示无图或失败。
+  // SSH 场景推荐：① 本机 clone 仓库，用 Paste Image 贴图后 git push；或 ② 把图片用 SFTP/拖拽上传到 public/posts/<文章名>/，再手写 Markdown 图片语法，URL 用站点根路径，例如 /posts/<文章名>/xxx.png。
+  "pasteImage.path": "${projectRoot}/public/posts/${currentFileNameWithoutExt}",
+  "pasteImage.basePath": "${projectRoot}/public",
+  "pasteImage.forceUnixStyleSeparator": true,
+  "pasteImage.insertPattern": "![](/${imageFilePath})",
+  "markdown.editor.filePaste.enabled": true,
+  "markdown.editor.filePaste.copyIntoWorkspace": "mediaFiles",
+  "markdown.editor.drop.copyIntoWorkspace": "mediaFiles",
+  "markdown.copyFiles.destination": {
+    "**/src/content/posts/**/*.md": "${documentWorkspaceFolder}/public/posts/${documentBaseName}/",
+    "**/src/content/posts/**/*.mdx": "${documentWorkspaceFolder}/public/posts/${documentBaseName}/"
+  }
+}

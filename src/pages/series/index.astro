@@ -1,0 +1,41 @@
+---
+import { getCollection } from "astro:content";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+
+const posts = (await getCollection("posts")).filter((item) => !item.data.draft && item.data.series);
+const seriesMap = new Map<string, number>();
+
+posts.forEach((post) => {
+  const name = post.data.series as string;
+  seriesMap.set(name, (seriesMap.get(name) ?? 0) + 1);
+});
+
+const seriesList = Array.from(seriesMap.entries()).sort((a, b) => b[1] - a[1]);
+---
+
+<BaseLayout title="专题 | zhang-llmlab">
+  <h1>专题</h1>
+  <div class="grid">
+    {seriesList.map(([name, count]) => (
+      <a class="card item" href={`/series/${encodeURIComponent(name)}`}>
+        <h3>{name}</h3>
+        <p class="muted">{count} 篇文章</p>
+      </a>
+    ))}
+  </div>
+</BaseLayout>
+
+<style>
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 0.8rem;
+  }
+  .item {
+    padding: 1rem;
+  }
+  h3,
+  p {
+    margin: 0;
+  }
+</style>

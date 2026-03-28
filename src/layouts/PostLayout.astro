@@ -8,6 +8,11 @@ interface Props {
   pubDate?: Date;
   tags?: string[];
   category?: string;
+  series?: string;
+  seriesItems?: { slug: string; title: string; order?: number; pubDate?: Date }[];
+  currentSlug?: string;
+  prevInSeries?: { slug: string; title: string; order?: number };
+  nextInSeries?: { slug: string; title: string; order?: number };
   showComments?: boolean;
 }
 
@@ -17,6 +22,11 @@ const {
   pubDate,
   tags = [],
   category = "未分类",
+  series,
+  seriesItems = [],
+  currentSlug,
+  prevInSeries,
+  nextInSeries,
   showComments = true
 } = Astro.props;
 ---
@@ -30,11 +40,57 @@ const {
       <div class="tag-list">
         {tags.map((tag) => <a class="tag" href={`/tags/${tag}`}>#{tag}</a>)}
       </div>
+      {
+        series && (
+          <p class="series muted">
+            所属专题：<a href={`/series/${encodeURIComponent(series)}`}>{series}</a>
+          </p>
+        )
+      }
     </header>
     <div class="content">
       <slot />
     </div>
   </article>
+  {
+    series && seriesItems.length > 0 && (
+      <>
+        <aside class="card series-nav">
+          <h3>本专题文章</h3>
+          <ol>
+            {seriesItems.map((item) => (
+              <li>
+                <a class={item.slug === currentSlug ? "active" : ""} href={`/posts/${item.slug}`}>
+                  {item.order ? `第 ${item.order} 篇 · ` : ""}
+                  {item.title}
+                </a>
+              </li>
+            ))}
+          </ol>
+        </aside>
+        {(prevInSeries || nextInSeries) && (
+          <nav class="card series-pager" aria-label="专题上下篇导航">
+            {prevInSeries ? (
+              <a class="pager-link" href={`/posts/${prevInSeries.slug}`}>
+                <span class="muted">上一篇</span>
+                <strong>{prevInSeries.title}</strong>
+              </a>
+            ) : (
+              <span />
+            )}
+            {nextInSeries ? (
+              <a class="pager-link align-right" href={`/posts/${nextInSeries.slug}`}>
+                <span class="muted">下一篇</span>
+                <strong>{nextInSeries.title}</strong>
+              </a>
+            ) : (
+              <span />
+            )}
+          </nav>
+        )}
+      </>
+    )
+  }
   {showComments && <Giscus />}
 </BaseLayout>
 
@@ -50,6 +106,54 @@ const {
   .content {
     margin-top: 1rem;
     line-height: 1.8;
+  }
+  .series {
+    margin-top: 0.8rem;
+  }
+  .series-nav {
+    margin-top: 1rem;
+    padding: 1rem;
+  }
+  .series-nav h3 {
+    margin-top: 0;
+  }
+  .series-nav ol {
+    margin: 0;
+    padding-left: 1.1rem;
+    display: grid;
+    gap: 0.4rem;
+  }
+  .series-nav a {
+    color: var(--text-soft);
+  }
+  .series-nav a.active {
+    color: var(--text);
+    font-weight: 600;
+  }
+  .series-pager {
+    margin-top: 1rem;
+    padding: 0.9rem;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.8rem;
+  }
+  .pager-link {
+    display: grid;
+    gap: 0.3rem;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 0.7rem;
+  }
+  .align-right {
+    text-align: right;
+  }
+  @media (max-width: 720px) {
+    .series-pager {
+      grid-template-columns: 1fr;
+    }
+    .align-right {
+      text-align: left;
+    }
   }
   h1 {
     margin: 0.25rem 0 0.75rem;

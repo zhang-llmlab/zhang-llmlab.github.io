@@ -1,0 +1,8 @@
+[
+  {
+    "key": "ctrl+alt+shift+v",
+    "mac": "cmd+alt+shift+v",
+    "command": "extension.pasteImage",
+    "when": "editorTextFocus"
+  }
+]
