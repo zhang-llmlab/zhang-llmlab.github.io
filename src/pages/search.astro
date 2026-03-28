@@ -1,35 +1,507 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
+
+const base = import.meta.env.BASE_URL;
+const pagefindBundlePath = `${base}pagefind/`;
+const pagefindCss = `${base}pagefind/pagefind-ui.css`;
+const pagefindJs = `${base}pagefind/pagefind-ui.js`;
+const searchIndexUrl = `${base}search-index.json`;
 ---
 
 <BaseLayout title="搜索 | zhang-llmlab">
-  <section class="card wrap">
-    <h1>全文搜索</h1>
-    <div id="search"></div>
+  <section class="search-page card wrap">
+    <h1 class="page-title">全文搜索</h1>
+    <p class="muted hint">
+      默认使用 <strong>Pagefind</strong> 全文索引（部署前请执行 <code class="search-code">npm run build</code>）。若当前环境没有索引（例如
+      <code class="search-code">astro dev</code>），将自动使用<strong>标题与摘要</strong>快速搜索。
+    </p>
+    <div id="search-root" class="search-root" aria-live="polite">
+      <p class="search-loading muted" id="search-loading">正在加载搜索…</p>
+      <div id="search" class="search-mount hidden" hidden></div>
+      <div id="search-fallback" class="search-fallback hidden" hidden>
+        <p class="muted search-fallback-note" id="search-fallback-note"></p>
+        <label class="sr-only" for="search-fallback-input">搜索关键词</label>
+        <div class="search-fallback-field">
+          <span class="search-fallback-icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path
+                d="M12.755 11.255h-.79l-.28-.27a6.471 6.471 0 10-.698.685l.267.283v.789L16.255 17.75 17.745 16.26l-4.99-5.005zm-5.997 0a4.472 4.472 0 114.47-4.471 4.47 4.47 0 01-4.47 4.47z"
+                fill="currentColor"></path>
+            </svg>
+          </span>
+          <input
+            type="search"
+            id="search-fallback-input"
+            class="search-fallback-input"
+            autocomplete="off"
+            placeholder="搜索文章与项目（标题、摘要、关键词）…"
+          />
+        </div>
+        <p class="search-fallback-status muted" id="search-fallback-status" aria-live="polite"></p>
+        <ul class="search-fallback-results" id="search-fallback-results"></ul>
+      </div>
+    </div>
   </section>
 </BaseLayout>
 
-<link rel="stylesheet" href="/pagefind/pagefind-ui.css" />
-<script is:inline>
-  const initPagefind = () => {
-    if (!window.PagefindUI) return;
-    new window.PagefindUI({
-      element: "#search",
-      showImages: false,
-      translations: {
-        placeholder: "搜索文章和项目..."
-      }
-    });
-  };
+<link rel="stylesheet" href={pagefindCss} />
 
-  const script = document.createElement("script");
-  script.src = "/pagefind/pagefind-ui.js";
-  script.onload = initPagefind;
-  document.body.appendChild(script);
+<script is:inline define:vars={{ pagefindBundlePath, pagefindJs, searchIndexUrl }}>
+  (function () {
+    function pathIsSearchPage() {
+      var p = window.location.pathname.replace(/\/$/, "") || "/";
+      return p === "/search" || p.endsWith("/search");
+    }
+
+    var uiInstance = null;
+    var itemsCache = null;
+    var fallbackInputHandler = null;
+    var fallbackDebouncer = null;
+
+    function setLoading(visible) {
+      var el = document.getElementById("search-loading");
+      if (el) {
+        el.classList.toggle("hidden", !visible);
+        if (!visible) el.setAttribute("hidden", "");
+        else el.removeAttribute("hidden");
+      }
+    }
+
+    function hideFallback() {
+      var fb = document.getElementById("search-fallback");
+      if (fb) {
+        fb.classList.add("hidden");
+        fb.setAttribute("hidden", "");
+      }
+      var input = document.getElementById("search-fallback-input");
+      if (input && fallbackInputHandler) {
+        input.removeEventListener("input", fallbackInputHandler);
+        fallbackInputHandler = null;
+      }
+      if (fallbackDebouncer) {
+        clearTimeout(fallbackDebouncer);
+        fallbackDebouncer = null;
+      }
+    }
+
+    function showFallbackPanel(note) {
+      hideFallback();
+      var fb = document.getElementById("search-fallback");
+      var noteEl = document.getElementById("search-fallback-note");
+      if (noteEl) noteEl.textContent = note;
+      if (fb) {
+        fb.classList.remove("hidden");
+        fb.removeAttribute("hidden");
+      }
+      var mount = document.getElementById("search");
+      if (mount) {
+        mount.classList.add("hidden");
+        mount.setAttribute("hidden", "");
+      }
+    }
+
+    function showMount() {
+      var mount = document.getElementById("search");
+      var load = document.getElementById("search-loading");
+      if (load) {
+        load.classList.add("hidden");
+        load.setAttribute("hidden", "");
+      }
+      if (mount) {
+        mount.removeAttribute("hidden");
+        mount.classList.remove("hidden");
+      }
+      hideFallback();
+    }
+
+    function destroyUi() {
+      if (uiInstance && typeof uiInstance.destroy === "function") {
+        try {
+          uiInstance.destroy();
+        } catch (e) {}
+      }
+      uiInstance = null;
+      var mount = document.getElementById("search");
+      if (mount) mount.innerHTML = "";
+      hideFallback();
+      itemsCache = null;
+    }
+
+    function renderFallbackResults(matches) {
+      var ul = document.getElementById("search-fallback-results");
+      var st = document.getElementById("search-fallback-status");
+      if (!ul) return;
+      ul.innerHTML = "";
+      if (st) st.textContent = matches.length ? "共 " + matches.length + " 条" : "";
+      matches.slice(0, 40).forEach(function (it) {
+        var li = document.createElement("li");
+        li.className = "search-fallback-item";
+        var a = document.createElement("a");
+        a.href = it.url;
+        a.className = "search-fallback-link card";
+        var span = document.createElement("span");
+        span.className = "search-fallback-kind";
+        span.textContent = it.kind === "post" ? "文章" : "项目";
+        var h = document.createElement("strong");
+        h.className = "search-fallback-title";
+        h.textContent = it.title;
+        var p = document.createElement("p");
+        p.className = "muted search-fallback-desc";
+        p.textContent = it.description || "（无摘要）";
+        a.appendChild(span);
+        a.appendChild(h);
+        a.appendChild(p);
+        li.appendChild(a);
+        ul.appendChild(li);
+      });
+      if (matches.length > 40 && st) {
+        st.textContent += "（仅显示前 40 条，可缩小关键词）";
+      }
+    }
+
+    function runFallbackFilter(q) {
+      var query = (q || "").trim().toLowerCase();
+      if (!itemsCache) return;
+      if (!query) {
+        renderFallbackResults([]);
+        var st = document.getElementById("search-fallback-status");
+        if (st) st.textContent = "";
+        return;
+      }
+      var needles = query.split(/\s+/).filter(Boolean);
+      var matches = itemsCache.filter(function (it) {
+        return needles.every(function (n) {
+          return it.haystack.indexOf(n) !== -1;
+        });
+      });
+      renderFallbackResults(matches);
+      var st2 = document.getElementById("search-fallback-status");
+      if (st2 && matches.length === 0) st2.textContent = "未找到匹配项";
+    }
+
+    function bindFallbackInput() {
+      var input = document.getElementById("search-fallback-input");
+      if (!input) return;
+      if (fallbackInputHandler) input.removeEventListener("input", fallbackInputHandler);
+      fallbackInputHandler = function () {
+        if (fallbackDebouncer) clearTimeout(fallbackDebouncer);
+        var v = input.value;
+        fallbackDebouncer = setTimeout(function () {
+          runFallbackFilter(v);
+        }, 200);
+      };
+      input.addEventListener("input", fallbackInputHandler);
+      input.focus();
+    }
+
+    function startFallbackSearch(note) {
+      setLoading(false);
+      showFallbackPanel(
+        note ||
+          "未检测到 Pagefind 脚本或索引。以下为根据标题、摘要与关键词的本地快速搜索（开发模式同样可用）。"
+      );
+      fetch(searchIndexUrl)
+        .then(function (r) {
+          if (!r.ok) throw new Error("bad");
+          return r.json();
+        })
+        .then(function (data) {
+          itemsCache = data.items || [];
+          bindFallbackInput();
+          runFallbackFilter(document.getElementById("search-fallback-input").value);
+        })
+        .catch(function () {
+          var st = document.getElementById("search-fallback-status");
+          if (st) st.textContent = "无法加载 search-index.json，请稍后重试。";
+        });
+    }
+
+    function ensurePagefindScript(cb, onFail) {
+      if (window.PagefindUI) {
+        cb();
+        return;
+      }
+      var existing = document.querySelector('script[data-pagefind-ui-script="1"]');
+      if (existing) {
+        if (existing.getAttribute("data-loaded") === "1") {
+          cb();
+        } else {
+          existing.addEventListener("load", function () {
+            existing.setAttribute("data-loaded", "1");
+            cb();
+          });
+          existing.addEventListener("error", function () {
+            onFail();
+          });
+        }
+        return;
+      }
+      var script = document.createElement("script");
+      script.src = pagefindJs;
+      script.async = true;
+      script.dataset.pagefindUiScript = "1";
+      script.onload = function () {
+        script.setAttribute("data-loaded", "1");
+        cb();
+      };
+      script.onerror = function () {
+        onFail();
+      };
+      document.head.appendChild(script);
+    }
+
+    function mountPagefind() {
+      if (!pathIsSearchPage()) {
+        destroyUi();
+        return;
+      }
+
+      var root = document.getElementById("search");
+      if (!root) return;
+
+      destroyUi();
+
+      var loadEl = document.getElementById("search-loading");
+      if (loadEl) {
+        loadEl.classList.remove("hidden");
+        loadEl.removeAttribute("hidden");
+      }
+
+      var mount = document.getElementById("search");
+      if (mount) {
+        mount.classList.add("hidden");
+        mount.setAttribute("hidden", "");
+        mount.innerHTML = "";
+      }
+
+      ensurePagefindScript(
+        function () {
+          if (!pathIsSearchPage()) return;
+          if (!window.PagefindUI) {
+            startFallbackSearch();
+            return;
+          }
+          try {
+            uiInstance = new window.PagefindUI({
+              element: "#search",
+              bundlePath: pagefindBundlePath,
+              showImages: false,
+              resetStyles: false,
+              autofocus: true,
+              translations: {
+                placeholder: "搜索文章和项目…",
+                zero_results: "未找到与 “[SEARCH_TERM]” 相关的页面",
+                many_results: "找到 [COUNT] 条与 “[SEARCH_TERM]” 相关的结果",
+                one_result: "找到 1 条与 “[SEARCH_TERM]” 相关的结果",
+                searching: "正在搜索 “[SEARCH_TERM]”…",
+                clear_search: "清除",
+                load_more: "加载更多结果"
+              }
+            });
+            showMount();
+            setLoading(false);
+          } catch (e) {
+            console.error(e);
+            startFallbackSearch("Pagefind 初始化失败，已切换为标题与摘要搜索。");
+          }
+        },
+        function () {
+          startFallbackSearch();
+        }
+      );
+    }
+
+    mountPagefind();
+    document.addEventListener("astro:page-load", mountPagefind);
+  })();
 </script>
 
 <style>
   .wrap {
-    padding: 1rem;
+    padding: 1.25rem 1.2rem 1.5rem;
+    border-radius: var(--radius-lg);
+  }
+
+  .hint {
+    margin: 0.35rem 0 1.15rem;
+    font-size: 0.92rem;
+    line-height: 1.55;
+    max-width: 62ch;
+  }
+
+  .hint strong {
+    font-weight: 600;
+  }
+
+  .search-code {
+    font-size: 0.84em;
+    padding: 0.12em 0.35em;
+    border-radius: 4px;
+    background: var(--code-inline-bg);
+    border: 1px solid var(--code-inline-border);
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+  }
+
+  .search-root {
+    min-height: 3.75rem;
+    --pagefind-ui-scale: 0.82;
+    --pagefind-ui-primary: var(--brand);
+    --pagefind-ui-text: var(--text);
+    --pagefind-ui-background: var(--bg-soft);
+    --pagefind-ui-border: var(--line-strong);
+    --pagefind-ui-tag: var(--bg-elevated);
+    --pagefind-ui-border-width: 1px;
+    --pagefind-ui-border-radius: 10px;
+    --pagefind-ui-font: "DM Sans", "Noto Sans SC", "PingFang SC", system-ui, sans-serif;
+  }
+
+  .search-loading {
+    margin: 0;
+    font-size: 0.94rem;
+  }
+
+  .search-loading.hidden {
+    display: none;
+  }
+
+  .search-mount.hidden {
+    display: none;
+  }
+
+  .search-fallback.hidden {
+    display: none;
+  }
+
+  .search-fallback-note {
+    margin: 0 0 0.85rem;
+    font-size: 0.88rem;
+    line-height: 1.55;
+  }
+
+  .search-fallback-field {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  .search-fallback-icon {
+    position: absolute;
+    left: 1rem;
+    display: flex;
+    color: var(--text-muted);
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  .search-fallback-input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.85rem 1rem 0.85rem 2.65rem;
+    font-size: 1rem;
+    font-weight: 600;
+    font-family: inherit;
+    color: var(--text);
+    background: var(--bg-soft);
+    border: 1px solid var(--line-strong);
+    border-radius: 10px;
+    outline: none;
+    transition:
+      border-color 0.2s ease,
+      box-shadow 0.2s ease;
+  }
+
+  .search-fallback-input::placeholder {
+    color: var(--text-muted);
+    font-weight: 400;
+    opacity: 0.85;
+  }
+
+  .search-fallback-input:focus {
+    border-color: var(--brand);
+    box-shadow: 0 0 0 3px var(--focus);
+  }
+
+  .search-fallback-status {
+    margin: 0.6rem 0 0.35rem;
+    font-size: 0.86rem;
+    min-height: 1.25em;
+  }
+
+  .search-fallback-results {
+    list-style: none;
+    margin: 0.5rem 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+  }
+
+  .search-fallback-link {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    padding: 0.85rem 1rem;
+    border-radius: var(--radius);
+    text-decoration: none;
+    color: inherit;
+    transition:
+      transform 0.15s ease,
+      box-shadow 0.2s ease;
+  }
+
+  .search-fallback-link:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .search-fallback-kind {
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--brand);
+  }
+
+  .search-fallback-title {
+    font-size: 1.02rem;
+    font-weight: 650;
+    letter-spacing: -0.02em;
+  }
+
+  .search-fallback-desc {
+    margin: 0;
+    font-size: 0.88rem;
+    line-height: 1.5;
+  }
+
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .search-root :global(.pagefind-ui__search-input::placeholder) {
+    opacity: 0.45;
+    color: var(--text-muted);
+  }
+
+  .search-root :global(.pagefind-ui__message),
+  .search-root :global(.pagefind-ui__result-title),
+  .search-root :global(.pagefind-ui__result-excerpt) {
+    color: var(--text-soft);
+  }
+
+  .search-root :global(.pagefind-ui__result-link) {
+    color: var(--text);
+  }
+
+  .search-root :global(.pagefind-ui__result-link:hover) {
+    color: var(--brand);
   }
 </style>

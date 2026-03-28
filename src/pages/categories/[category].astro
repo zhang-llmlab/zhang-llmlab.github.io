@@ -27,17 +27,72 @@ const projects = (await getCollection("projects")).filter(
 ---
 
 <BaseLayout title={`分类：${category} | zhang-llmlab`}>
-  <h1>分类：{category}</h1>
-  <h2>文章</h2>
-  <ul>
-    {posts.map((item) => (
-      <li><a href={`/posts/${item.slug}`}>{item.data.title}</a></li>
-    ))}
-  </ul>
-  <h2>项目</h2>
-  <ul>
-    {projects.map((item) => (
-      <li><a href={`/projects/${item.slug}`}>{item.data.title}</a></li>
-    ))}
-  </ul>
+  <h1 class="page-title">分类：{category}</h1>
+  <section class="block">
+    <h2 class="sub">文章</h2>
+    <ul class="link-list">
+      {posts.map((item) => (
+        <li>
+          <a class="card row" href={`/posts/${item.slug}`}>
+            <span>{item.data.title}</span>
+            <span class="muted date">{item.data.pubDate.toLocaleDateString("zh-CN")}</span>
+          </a>
+        </li>
+      ))}
+    </ul>
+  </section>
+  <section class="block">
+    <h2 class="sub">项目</h2>
+    <ul class="link-list">
+      {projects.map((item) => (
+        <li>
+          <a class="card row" href={`/projects/${item.slug}`}>
+            <span>{item.data.title}</span>
+          </a>
+        </li>
+      ))}
+    </ul>
+  </section>
 </BaseLayout>
+
+<style>
+  .block {
+    margin-top: 1.1rem;
+  }
+  .block:first-of-type {
+    margin-top: 0.35rem;
+  }
+  .sub {
+    margin: 0 0 0.65rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: var(--text-soft);
+  }
+  .link-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.65rem;
+  }
+  .link-list li {
+    margin: 0;
+  }
+  .row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.85rem 1rem;
+    border-radius: var(--radius);
+    font-weight: 500;
+    font-size: 0.95rem;
+  }
+  .date {
+    flex-shrink: 0;
+    font-size: 0.85rem;
+    font-weight: 400;
+    font-variant-numeric: tabular-nums;
+  }
+</style>

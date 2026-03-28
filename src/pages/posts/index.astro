@@ -1,43 +1,252 @@
 ---
 import { getCollection } from "astro:content";
 import BaseLayout from "../../layouts/BaseLayout.astro";
+import { PROFILE } from "../../site.config";
 
 const posts = (await getCollection("posts"))
   .filter((item) => !item.data.draft)
   .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
 const seriesSet = new Set(posts.map((post) => post.data.series).filter(Boolean));
+
+const authorDisplay = PROFILE.name;
+
+function formatYmd(d: Date) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+function keywordsLine(kw: string[] | undefined) {
+  const parts = (kw ?? []).map((k) => String(k).trim()).filter(Boolean);
+  return parts.length ? parts.join("、") : "—";
+}
 ---
 
 <BaseLayout title="文章 | zhang-llmlab">
-  <h1>文章</h1>
-  <p class="muted">已收录专题 {seriesSet.size} 个，<a href="/series">查看专题页</a></p>
-  <div class="list">
-    {posts.map((post) => (
-      <a class="card row" href={`/posts/${post.slug}`}>
-        <div>
-          <h3>{post.data.title}</h3>
-          <p class="muted">{post.data.description}</p>
-        </div>
-        <span class="muted">{post.data.pubDate.toLocaleDateString("zh-CN")}</span>
-      </a>
-    ))}
+  <h1 class="page-title">文章</h1>
+  <p class="muted intro">已收录专题 {seriesSet.size} 个，<a href="/series">查看专题页</a></p>
+  <div class="post-list">
+    {
+      posts.map((post) => {
+        const seriesLabel = post.data.series?.trim() || "—";
+        const excerpt = post.data.description?.trim() || "暂无摘要";
+        return (
+          <article class="post-card">
+            <h2 class="post-card__title">
+              <a href={`/posts/${post.slug}`}>{post.data.title}</a>
+            </h2>
+            <ul class="post-card__meta" aria-label="文章信息">
+              <li class="post-card__meta-item">
+                <span class="post-card__icon" aria-hidden="true">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                  </svg>
+                </span>
+                <span>{authorDisplay}</span>
+              </li>
+              <li class="post-card__meta-item">
+                <span class="post-card__icon" aria-hidden="true">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                  </svg>
+                </span>
+                <time datetime={post.data.pubDate.toISOString()}>{formatYmd(post.data.pubDate)}</time>
+              </li>
+              <li class="post-card__meta-item">
+                <span class="post-card__icon" aria-hidden="true">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                  </svg>
+                </span>
+                <span>{seriesLabel}</span>
+              </li>
+              <li class="post-card__meta-item post-card__meta-item--wide">
+                <span class="post-card__icon" aria-hidden="true">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
+                    <line x1="7" y1="7" x2="7.01" y2="7"></line>
+                  </svg>
+                </span>
+                <span>{keywordsLine(post.data.keywords)}</span>
+              </li>
+            </ul>
+            <hr class="post-card__rule" />
+            <p class="post-card__excerpt">{excerpt}</p>
+            <div class="post-card__footer">
+              <a class="post-card__more" href={`/posts/${post.slug}`}>
+                阅读全文 <span class="post-card__more-chevron" aria-hidden="true">&gt;</span>
+              </a>
+            </div>
+          </article>
+        );
+      })
+    }
   </div>
 </BaseLayout>
 
 <style>
-  .list {
+  .intro {
+    margin: 0 0 1.35rem;
+    font-size: 0.98rem;
+  }
+  .intro a {
+    color: var(--brand-2);
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
+
+  .post-list {
     display: grid;
-    gap: 0.8rem;
+    gap: 1.35rem;
   }
-  .row {
-    padding: 1rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: start;
-    gap: 1rem;
-  }
-  h3,
-  p {
+
+  .post-card {
+    --post-list-card-bg: var(--bg-elevated);
+    --post-list-card-border: var(--line);
+    --post-list-card-border-hover: var(--line-strong);
+    --post-list-card-shadow: var(--shadow-sm);
+    --post-list-card-shadow-hover: 0 12px 36px rgba(0, 0, 0, 0.4);
+    --post-list-title: var(--text);
+    --post-list-meta: var(--text-muted);
+    --post-list-rule: var(--line);
+    --post-list-excerpt: var(--text-soft);
+    --post-list-readmore: #60a5fa;
+    --post-list-readmore-hover: #93c5fd;
+
     margin: 0;
+    padding: 1.65rem 1.85rem 1.5rem;
+    border-radius: 12px;
+    background: var(--post-list-card-bg);
+    border: 1px solid var(--post-list-card-border);
+    box-shadow: var(--post-list-card-shadow);
+    transition:
+      transform 0.22s var(--ease-out),
+      box-shadow 0.22s var(--ease-out),
+      border-color 0.2s ease;
+  }
+
+  .post-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--post-list-card-shadow-hover);
+    border-color: var(--post-list-card-border-hover);
+  }
+
+  .post-card__title {
+    margin: 0 0 0.65rem;
+    font-size: clamp(1.2rem, 2.8vw, 1.55rem);
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    line-height: 1.35;
+    color: var(--post-list-title);
+  }
+
+  .post-card__title a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .post-card__title a:hover {
+    color: var(--brand);
+  }
+
+  .post-card__meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 1.25rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: 0.875rem;
+    line-height: 1.45;
+    color: var(--post-list-meta);
+  }
+
+  .post-card__meta-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    min-width: 0;
+  }
+
+  .post-card__meta-item--wide {
+    flex: 1 1 100%;
+  }
+
+  @media (min-width: 560px) {
+    .post-card__meta-item--wide {
+      flex: 1 1 auto;
+    }
+  }
+
+  .post-card__icon {
+    display: inline-flex;
+    flex-shrink: 0;
+    color: var(--post-list-meta);
+    opacity: 0.92;
+  }
+
+  .post-card__rule {
+    margin: 1rem 0 1.05rem;
+    border: none;
+    border-top: 1px solid var(--post-list-rule);
+  }
+
+  .post-card__excerpt {
+    margin: 0;
+    font-size: 1rem;
+    line-height: 1.62;
+    color: var(--post-list-excerpt);
+  }
+
+  .post-card__footer {
+    margin-top: 1.15rem;
+    text-align: right;
+  }
+
+  .post-card__more {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: var(--post-list-readmore);
+    text-decoration: none;
+  }
+
+  .post-card__more:hover {
+    color: var(--post-list-readmore-hover);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .post-card__more:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 3px;
+    border-radius: 4px;
+  }
+
+  .post-card__more-chevron {
+    font-weight: 600;
+    margin-left: 0.05em;
+  }
+
+  :global(html[data-theme="light"]) .post-card {
+    --post-list-card-bg: #ffffff;
+    --post-list-card-border: rgba(0, 0, 0, 0.06);
+    --post-list-card-border-hover: rgba(0, 0, 0, 0.09);
+    --post-list-card-shadow: 0 4px 20px rgba(0, 30, 45, 0.08), 0 2px 6px rgba(0, 30, 45, 0.04);
+    --post-list-card-shadow-hover: 0 12px 32px rgba(0, 30, 45, 0.1), 0 4px 12px rgba(0, 30, 45, 0.05);
+    --post-list-title: #162832;
+    --post-list-meta: #6b7280;
+    --post-list-rule: rgba(0, 0, 0, 0.08);
+    --post-list-excerpt: #374151;
+    --post-list-readmore: #2563eb;
+    --post-list-readmore-hover: #1d4ed8;
   }
 </style>

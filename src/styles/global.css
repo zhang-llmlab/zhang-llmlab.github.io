@@ -1,27 +1,119 @@
 :root {
-  --bg: #0b1020;
-  --bg-soft: #131b33;
-  --text: #f5f7ff;
-  --text-soft: #b6bfd8;
-  --brand: #7c5cff;
-  --brand-2: #00d4ff;
-  --line: #2a3459;
-  --card: rgba(19, 27, 51, 0.75);
+  color-scheme: dark;
+  --bg: #0a0b0f;
+  --bg-elevated: #101118;
+  --bg-soft: #181b24;
+  --text: #f2f0ec;
+  --text-soft: #a8a5a0;
+  --text-muted: #6d6a64;
+  --brand: #c9a962;
+  --brand-hover: #dfc07a;
+  --brand-2: #8fbfcf;
+  --accent: #b8735a;
+  --line: rgba(210, 200, 180, 0.12);
+  --line-strong: rgba(220, 210, 190, 0.24);
+  --card: rgba(22, 24, 30, 0.82);
+  --card-hover: rgba(30, 33, 42, 0.92);
+  --card-shine: linear-gradient(165deg, rgba(255, 255, 255, 0.055) 0%, rgba(255, 255, 255, 0) 42%);
+  --shadow-sm: 0 4px 24px rgba(0, 0, 0, 0.34), 0 1px 0 rgba(255, 255, 255, 0.04) inset;
+  --shadow-md: 0 18px 48px rgba(0, 0, 0, 0.44), 0 1px 0 rgba(255, 255, 255, 0.05) inset;
+  --radius: 16px;
+  --radius-lg: 22px;
+  --code-bg: #0d0f14;
+  --code-border: rgba(180, 170, 150, 0.16);
+  --code-inline-bg: rgba(201, 169, 98, 0.1);
+  --code-inline-border: rgba(201, 169, 98, 0.22);
+  --focus: rgba(201, 169, 98, 0.5);
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --content-max: 1200px;
+  --body-bg: radial-gradient(ellipse 820px 480px at 8% -8%, rgba(201, 169, 98, 0.09), transparent 58%),
+    radial-gradient(ellipse 680px 420px at 92% 12%, rgba(143, 191, 207, 0.07), transparent 52%),
+    radial-gradient(ellipse 520px 360px at 48% 100%, rgba(184, 115, 90, 0.05), transparent 48%),
+    linear-gradient(180deg, var(--bg-elevated) 0%, var(--bg) 30%, var(--bg) 100%);
+  --sidebar-card-bg: rgba(26, 28, 34, 0.95);
+  --sidebar-card-border: rgba(210, 200, 180, 0.1);
+  --sidebar-card-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
+  --sidebar-title: var(--text);
+  --sidebar-muted: var(--text-soft);
+  --sidebar-divider: rgba(210, 200, 180, 0.1);
+  --sidebar-badge-bg: rgba(255, 255, 255, 0.06);
+  --sidebar-social-bg: rgba(255, 255, 255, 0.05);
 }
 
-* {
+html[data-theme="light"] {
+  color-scheme: light;
+  --bg: #eef2ee;
+  --bg-elevated: #ffffff;
+  --bg-soft: #f0f4f1;
+  --text: #1a2e35;
+  --text-soft: #4a5f66;
+  --text-muted: #6b7f85;
+  --brand: #b8923a;
+  --brand-hover: #9a7628;
+  --brand-2: #3d7a8c;
+  --accent: #a85c48;
+  --line: rgba(30, 70, 55, 0.1);
+  --line-strong: rgba(30, 70, 55, 0.2);
+  --card: rgba(255, 255, 255, 0.95);
+  --card-hover: #ffffff;
+  --card-shine: linear-gradient(165deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0) 45%);
+  --shadow-sm: 0 4px 20px rgba(0, 40, 30, 0.08), 0 1px 0 rgba(255, 255, 255, 0.8) inset;
+  --shadow-md: 0 14px 40px rgba(0, 40, 30, 0.1);
+  --code-bg: #f4f6f4;
+  --code-border: rgba(30, 60, 50, 0.12);
+  --code-inline-bg: rgba(184, 146, 58, 0.12);
+  --code-inline-border: rgba(184, 146, 58, 0.25);
+  --focus: rgba(184, 146, 58, 0.45);
+  --body-bg: radial-gradient(ellipse 780px 440px at 12% -10%, rgba(120, 180, 140, 0.14), transparent 55%),
+    radial-gradient(ellipse 620px 400px at 88% 8%, rgba(100, 180, 200, 0.1), transparent 50%),
+    linear-gradient(180deg, #e8f0ec 0%, #f2f6f3 45%, #eaf1ed 100%);
+  --sidebar-card-bg: #ffffff;
+  --sidebar-card-border: rgba(0, 0, 0, 0.06);
+  --sidebar-card-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+  --sidebar-title: #1a3a42;
+  --sidebar-muted: #5a6f75;
+  --sidebar-divider: rgba(0, 0, 0, 0.07);
+  --sidebar-badge-bg: rgba(0, 0, 0, 0.06);
+  --sidebar-social-bg: rgba(0, 0, 0, 0.05);
+}
+
+*,
+*::before,
+*::after {
   box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+body.is-full-width {
+  scroll-padding-top: 4.75rem;
 }
 
 body {
   margin: 0;
-  font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
-  background:
-    radial-gradient(1200px 600px at 0% -20%, rgba(124, 92, 255, 0.25), transparent 55%),
-    radial-gradient(800px 500px at 100% 0%, rgba(0, 212, 255, 0.22), transparent 50%),
-    var(--bg);
+  font-family: "DM Sans", "Noto Sans SC", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  font-size: 1.02rem;
+  line-height: 1.65;
+  letter-spacing: 0.01em;
+  background: var(--body-bg);
+  background-attachment: fixed;
   color: var(--text);
   min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  transition: background 0.35s ease, color 0.25s ease;
+}
+
+::selection {
+  background: rgba(201, 169, 98, 0.32);
+  color: var(--text);
 }
 
 a {
@@ -29,17 +121,117 @@ a {
   text-decoration: none;
 }
 
+a:focus-visible,
+button:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 3px;
+}
+
 .container {
-  max-width: 1080px;
+  max-width: 1200px;
   margin: 0 auto;
-  padding: 1.25rem;
+  padding: 1.35rem 1.4rem 2.75rem;
+}
+
+.layout-with-sidebar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 300px);
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.layout-with-sidebar .layout-main {
+  min-width: 0;
+}
+
+@media (max-width: 960px) {
+  .layout-with-sidebar {
+    grid-template-columns: 1fr;
+  }
+}
+
+html[data-theme="light"] .nav--overlay--peek {
+  background: rgba(255, 255, 255, 0.9);
+  border-bottom-color: var(--line);
+  box-shadow: 0 6px 24px rgba(0, 40, 30, 0.08);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  ::view-transition-old(root) {
+    animation: vt-out 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  ::view-transition-new(root) {
+    animation: vt-in 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+}
+
+@keyframes vt-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes vt-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none;
+  }
 }
 
 .card {
+  position: relative;
   border: 1px solid var(--line);
-  border-radius: 16px;
-  background: var(--card);
-  backdrop-filter: blur(10px);
+  border-radius: var(--radius);
+  background-image: var(--card-shine), linear-gradient(180deg, var(--card) 0%, var(--card) 100%);
+  background-color: transparent;
+  backdrop-filter: blur(16px) saturate(1.12);
+  -webkit-backdrop-filter: blur(16px) saturate(1.12);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+a.card {
+  display: block;
+  transition:
+    border-color 0.28s var(--ease-out),
+    box-shadow 0.28s var(--ease-out),
+    transform 0.28s var(--ease-out),
+    background 0.28s var(--ease-out);
+}
+
+a.card:hover {
+  border-color: var(--line-strong);
+  background-image: var(--card-shine), linear-gradient(180deg, var(--card-hover) 0%, var(--card-hover) 100%);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-4px);
+}
+
+a.card:active {
+  transform: translateY(-1px);
 }
 
 .muted {
@@ -48,9 +240,64 @@ a {
 
 .tag {
   display: inline-flex;
-  padding: 0.2rem 0.6rem;
+  align-items: center;
+  padding: 0.22rem 0.65rem;
   border-radius: 999px;
   border: 1px solid var(--line);
+  background: rgba(201, 169, 98, 0.07);
   color: var(--text-soft);
-  font-size: 0.8rem;
+  font-size: 0.78rem;
+  font-weight: 500;
+  transition:
+    border-color 0.2s ease,
+    color 0.2s ease,
+    background 0.2s ease;
+}
+
+a.tag:hover {
+  border-color: rgba(201, 169, 98, 0.42);
+  color: var(--text);
+  background: rgba(201, 169, 98, 0.12);
+}
+
+.page-title {
+  font-size: clamp(1.65rem, 4vw, 2rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  margin: 0 0 0.5rem;
+  line-height: 1.2;
+}
+
+.section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.section-head h2 {
+  margin: 0;
+  font-size: 1.12rem;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  padding-left: 0.65rem;
+  border-left: 3px solid var(--brand);
+  line-height: 1.35;
+}
+
+.section-head a {
+  font-size: 0.88rem;
+  color: var(--brand-2);
+  transition:
+    color 0.2s ease,
+    opacity 0.2s ease;
+}
+
+.section-head a:hover {
+  color: var(--brand-hover);
+  opacity: 0.95;
+  text-decoration: underline;
+  text-underline-offset: 4px;
 }

@@ -1,6 +1,8 @@
 ---
+import "../styles/prose.css";
 import BaseLayout from "./BaseLayout.astro";
 import Giscus from "../components/Giscus.astro";
+import MermaidRuntime from "../components/MermaidRuntime.astro";
 
 interface Props {
   title: string;
@@ -33,10 +35,10 @@ const {
 
 <BaseLayout title={title} description={description}>
   <article class="card article">
-    <header>
-      <p class="muted">{pubDate?.toLocaleDateString("zh-CN")} · {category}</p>
-      <h1>{title}</h1>
-      {!!description && <p class="muted">{description}</p>}
+    <header class="article-header">
+      <p class="article-meta muted">{pubDate?.toLocaleDateString("zh-CN")} · {category}</p>
+      <h1 class="article-title">{title}</h1>
+      {!!description && <p class="article-desc muted">{description}</p>}
       <div class="tag-list">
         {tags.map((tag) => <a class="tag" href={`/tags/${tag}`}>#{tag}</a>)}
       </div>
@@ -48,7 +50,7 @@ const {
         )
       }
     </header>
-    <div class="content">
+    <div class="content prose">
       <slot />
     </div>
   </article>
@@ -92,11 +94,36 @@ const {
     )
   }
   {showComments && <Giscus />}
+  <MermaidRuntime />
 </BaseLayout>
 
 <style>
   .article {
-    padding: 1.2rem;
+    padding: 1.5rem 1.45rem 1.6rem;
+    border-radius: var(--radius-lg);
+  }
+  .article-header {
+    margin-bottom: 0.25rem;
+    padding-bottom: 0.15rem;
+  }
+  .article-meta {
+    font-size: 0.88rem;
+    letter-spacing: 0.02em;
+    margin: 0 0 0.6rem;
+  }
+  .article-title {
+    margin: 0 0 0.65rem;
+    font-size: clamp(1.55rem, 4vw, 2.05rem);
+    font-weight: 700;
+    letter-spacing: -0.035em;
+    line-height: 1.25;
+    color: var(--text);
+  }
+  .article-desc {
+    margin: 0 0 1rem;
+    font-size: 1.02rem;
+    line-height: 1.65;
+    max-width: 52ch;
   }
   .tag-list {
     display: flex;
@@ -104,15 +131,27 @@ const {
     flex-wrap: wrap;
   }
   .content {
-    margin-top: 1rem;
-    line-height: 1.8;
+    position: relative;
+    margin-top: 1.35rem;
+    padding-top: 1.45rem;
+  }
+  .content::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: min(100%, 42rem);
+    height: 1px;
+    background: linear-gradient(90deg, var(--line-strong), transparent);
+    border-radius: 1px;
   }
   .series {
     margin-top: 0.8rem;
   }
   .series-nav {
     margin-top: 1rem;
-    padding: 1rem;
+    padding: 1.1rem 1.15rem;
+    border-radius: var(--radius);
   }
   .series-nav h3 {
     margin-top: 0;
@@ -154,8 +193,5 @@ const {
     .align-right {
       text-align: left;
     }
-  }
-  h1 {
-    margin: 0.25rem 0 0.75rem;
   }
 </style>

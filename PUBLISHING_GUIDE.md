@@ -79,13 +79,13 @@ Astro 支持在 MDX 正文中用 **相对路径** 引用与文章同目录（或
 操作步骤：
 
 1. （可选但推荐）安装扩展 **Paste Image**（`mushan.vscode-paste-image`；打开仓库时可按提示安装「工作区推荐扩展」）。
-2. 打开某篇博客，例如 `src/content/posts/blog_demo.mdx`，并 **先保存文件**（未保存时无法按文件名创建子目录）。
+2. 打开某篇博客，例如 `src/content/posts/welcome.mdx`，并 **先保存文件**（未保存时无法按文件名创建子目录）。
 3. 截图或复制图片到剪贴板后：
    - **Ctrl+V**：使用编辑器内置 Markdown 粘贴；或
    - **Ctrl+Alt+V** / 命令面板 **Paste Image**：使用扩展粘贴。
-4. 图片会保存到与当前文件同目录、以 **当前文件主名** 命名的子文件夹，例如 `blog_demo.mdx` 对应 `src/content/posts/blog_demo/xxxx.png`，正文插入类似：
+4. 图片会保存到与当前文件同目录、以 **当前文件主名** 命名的子文件夹，例如 `welcome.mdx` 对应 `src/content/posts/welcome/xxxx.png`，正文插入类似：
 
-   `![](./blog_demo/xxxx.png)`
+   `![](./welcome/xxxx.png)`
 
 5. **封面图**仍建议在 frontmatter 里写 `public` 下的站点根路径，例如：`cover: "/covers/xxx.jpg"`（文件放在 `public/covers/`）。
 

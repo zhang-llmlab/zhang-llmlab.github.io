@@ -2,39 +2,121 @@
 import { getCollection } from "astro:content";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 
+function postMatchesTag(
+  tags: string[],
+  keywords: string[],
+  needle: string
+): boolean {
+  if (tags.includes(needle)) return true;
+  return keywords.some((k) => k.trim() === needle);
+}
+
 export async function getStaticPaths() {
   const posts = (await getCollection("posts")).filter((item) => !item.data.draft);
   const projects = (await getCollection("projects")).filter((item) => !item.data.draft);
-  const tags = new Set<string>();
+  const names = new Set<string>();
 
-  [...posts, ...projects].forEach((entry) => {
-    entry.data.tags.forEach((tag) => tags.add(tag));
+  for (const entry of posts) {
+    entry.data.tags.forEach((tag) => names.add(tag));
+    for (const k of entry.data.keywords || []) {
+      const t = String(k).trim();
+      if (t) names.add(t);
+    }
+  }
+  projects.forEach((entry) => {
+    entry.data.tags.forEach((tag) => names.add(tag));
   });
 
-  return Array.from(tags).map((tag) => ({ params: { tag } }));
+  return Array.from(names).map((tag) => ({ params: { tag } }));
 }
 
 const { tag } = Astro.params;
+const needle = tag ?? "";
+
 const posts = (await getCollection("posts")).filter(
-  (item) => !item.data.draft && item.data.tags.includes(tag ?? "")
+  (item) =>
+    !item.data.draft && postMatchesTag(item.data.tags, item.data.keywords ?? [], needle)
 );
 const projects = (await getCollection("projects")).filter(
-  (item) => !item.data.draft && item.data.tags.includes(tag ?? "")
+  (item) => !item.data.draft && item.data.tags.includes(needle)
 );
 ---
 
-<BaseLayout title={`标签：${tag} | zhang-llmlab`}>
-  <h1>标签：{tag}</h1>
-  <h2>文章</h2>
-  <ul>
-    {posts.map((item) => (
-      <li><a href={`/posts/${item.slug}`}>{item.data.title}</a></li>
-    ))}
-  </ul>
-  <h2>项目</h2>
-  <ul>
-    {projects.map((item) => (
-      <li><a href={`/projects/${item.slug}`}>{item.data.title}</a></li>
-    ))}
-  </ul>
+<BaseLayout title={`关键词：${needle} | zhang-llmlab`}>
+  <h1 class="page-title">关键词：{needle}</h1>
+  <p class="muted intro">匹配文章 front-matter 中的 <code>tags</code> 或 <code>keywords</code>。</p>
+  <section class="block">
+    <h2 class="sub">文章</h2>
+    <ul class="link-list">
+      {posts.map((item) => (
+        <li>
+          <a class="card row" href={`/posts/${item.slug}`}>
+            <span>{item.data.title}</span>
+            <span class="muted date">{item.data.pubDate.toLocaleDateString("zh-CN")}</span>
+          </a>
+        </li>
+      ))}
+    </ul>
+  </section>
+  <section class="block">
+    <h2 class="sub">项目</h2>
+    <ul class="link-list">
+      {projects.map((item) => (
+        <li>
+          <a class="card row" href={`/projects/${item.slug}`}>
+            <span>{item.data.title}</span>
+          </a>
+        </li>
+      ))}
+    </ul>
+  </section>
 </BaseLayout>
+
+<style>
+  .intro {
+    margin: 0 0 1.25rem;
+    font-size: 0.92rem;
+    line-height: 1.55;
+  }
+
+  .intro code {
+    font-size: 0.86em;
+  }
+
+  .block {
+    margin-top: 1.25rem;
+  }
+  .sub {
+    margin: 0 0 0.65rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: var(--text-soft);
+  }
+  .link-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.65rem;
+  }
+  .link-list li {
+    margin: 0;
+  }
+  .row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.85rem 1rem;
+    border-radius: var(--radius);
+    font-weight: 500;
+    font-size: 0.95rem;
+  }
+  .date {
+    flex-shrink: 0;
+    font-size: 0.85rem;
+    font-weight: 400;
+    font-variant-numeric: tabular-nums;
+  }
+</style>

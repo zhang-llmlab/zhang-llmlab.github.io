@@ -1,17 +1,29 @@
 ---
+import "katex/dist/katex.min.css";
 import "../styles/global.css";
 import Nav from "../components/Nav.astro";
+import Sidebar from "../components/Sidebar.astro";
+import ThemeToggle from "../components/ThemeToggle.astro";
 import { SITE } from "../site.config";
+import { ViewTransitions } from "astro:transitions";
+import { getSidebarData } from "../lib/sidebar-data";
 
 interface Props {
   title?: string;
   description?: string;
+  /** 全宽页面：不包裹 .container，由页面自行布局（如首页全屏头图） */
+  fullWidth?: boolean;
 }
 
 const {
   title = SITE.title,
-  description = SITE.description
+  description = SITE.description,
+  fullWidth = false
 } = Astro.props;
+
+const sidebarData = fullWidth
+  ? { series: [] as [string, number][], keywords: [] as [string, number][] }
+  : await getSidebarData();
 ---
 
 <!doctype html>
@@ -29,11 +41,70 @@ const {
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="alternate" type="application/rss+xml" title="RSS" href="/rss.xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:ital,wght@0,400;0,500;1,400&family=Noto+Sans+SC:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <script is:inline>
+      (function () {
+        function applyStoredTheme() {
+          try {
+            var k = "theme";
+            var s = localStorage.getItem(k);
+            var prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+            var t = s === "light" || s === "dark" ? s : prefersDark ? "dark" : "light";
+            document.documentElement.setAttribute("data-theme", t);
+          } catch (e) {}
+        }
+
+        applyStoredTheme();
+
+        document.addEventListener(
+          "click",
+          function (e) {
+            var el = e.target && e.target.closest && e.target.closest("[data-theme-toggle]");
+            if (!el || el.tagName !== "BUTTON") return;
+            e.preventDefault();
+            e.stopPropagation();
+            var cur = document.documentElement.getAttribute("data-theme") || "dark";
+            var next = cur === "dark" ? "light" : "dark";
+            document.documentElement.setAttribute("data-theme", next);
+            try {
+              localStorage.setItem("theme", next);
+            } catch (err) {}
+          },
+          true
+        );
+
+        document.addEventListener("astro:page-load", applyStoredTheme);
+      })();
+    </script>
+    <ViewTransitions />
   </head>
-  <body>
-    <div class="container">
-      <Nav />
-      <slot />
-    </div>
+  <body class:list={[{ "is-full-width": fullWidth }]}>
+    <ThemeToggle />
+    {
+      fullWidth ? (
+        <slot />
+      ) : (
+        <div class="container layout-page">
+          <Nav currentPath={Astro.url.pathname} />
+          <div class="layout-with-sidebar">
+            <div class="layout-main">
+              <slot />
+            </div>
+            <Sidebar series={sidebarData.series} keywords={sidebarData.keywords} />
+          </div>
+        </div>
+      )
+    }
   </body>
 </html>
+
+<style is:global>
+  .layout-page {
+    padding-bottom: 2.75rem;
+  }
+</style>

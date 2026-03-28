@@ -1,0 +1,229 @@
+---
+interface Props {
+  series: [string, number][];
+  keywords: [string, number][];
+}
+
+const { series, keywords } = Astro.props;
+---
+
+<aside class="sidebar" aria-label="站点侧栏">
+  <section class="sidebar-card sidebar-series">
+    <h3 class="sidebar-heading">
+      <svg class="sidebar-heading-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+      </svg>
+      专题
+    </h3>
+    <ul class="sidebar-list">
+      {
+        series.length === 0 ? (
+          <li class="sidebar-empty muted">暂无专题</li>
+        ) : (
+          series.map(([label, count]) => (
+            <li>
+              <a class="sidebar-cat-link" href={`/series/${encodeURIComponent(label)}`}>
+                <span class="sidebar-cat-label">{label}</span>
+                <span class="sidebar-cat-count">{count}</span>
+              </a>
+            </li>
+          ))
+        )
+      }
+    </ul>
+  </section>
+
+  <section class="sidebar-card sidebar-tags">
+    <h3 class="sidebar-heading">
+      <svg class="sidebar-heading-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
+        <line x1="7" y1="7" x2="7.01" y2="7"></line>
+      </svg>
+      关键词
+    </h3>
+    <div class="sidebar-tag-cloud">
+      {
+        keywords.length === 0 ? (
+          <span class="muted sidebar-empty">暂无关键词</span>
+        ) : (
+          keywords.map(([kw, count], i) => (
+            <a class={`sidebar-tag sidebar-tag--${i % 6}`} href={`/tags/${encodeURIComponent(kw)}`}>
+              {kw}
+              <span class="sidebar-tag-n">{count}</span>
+            </a>
+          ))
+        )
+      }
+    </div>
+  </section>
+</aside>
+
+<style>
+  .sidebar {
+    position: sticky;
+    top: 5.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    min-width: 0;
+  }
+
+  .sidebar-card {
+    padding: 1.15rem 1.1rem;
+    border-radius: 12px;
+    background: var(--sidebar-card-bg);
+    border: 1px solid var(--sidebar-card-border);
+    box-shadow: var(--sidebar-card-shadow);
+  }
+
+  .sidebar-heading {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    margin: 0 0 0.75rem;
+    font-size: 0.95rem;
+    font-weight: 650;
+    color: var(--sidebar-title);
+  }
+
+  .sidebar-heading-icon {
+    flex-shrink: 0;
+    opacity: 0.85;
+  }
+
+  .sidebar-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .sidebar-list li {
+    border-top: 1px solid var(--sidebar-divider);
+  }
+
+  .sidebar-list li:first-child {
+    border-top: none;
+  }
+
+  .sidebar-cat-link {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.55rem 0;
+    font-size: 0.9rem;
+    color: var(--text-soft);
+    transition: color 0.18s ease;
+  }
+
+  .sidebar-cat-link:hover {
+    color: var(--brand);
+  }
+
+  .sidebar-cat-label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .sidebar-cat-count {
+    flex-shrink: 0;
+    min-width: 1.5rem;
+    height: 1.35rem;
+    padding: 0 0.4rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.72rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: var(--sidebar-muted);
+    background: var(--sidebar-badge-bg);
+    border-radius: 999px;
+  }
+
+  .sidebar-tag-cloud {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+  }
+
+  .sidebar-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.28rem 0.55rem;
+    border-radius: 6px;
+    font-size: 0.78rem;
+    font-weight: 500;
+    transition:
+      transform 0.15s ease,
+      filter 0.15s ease;
+  }
+
+  .sidebar-tag:hover {
+    transform: translateY(-1px);
+    filter: brightness(1.05);
+  }
+
+  .sidebar-tag-n {
+    font-size: 0.68rem;
+    opacity: 0.85;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .sidebar-tag--0 {
+    background: rgba(236, 72, 153, 0.18);
+    color: #db2777;
+  }
+  html[data-theme="light"] .sidebar-tag--0 {
+    color: #be185d;
+  }
+
+  .sidebar-tag--1 {
+    background: rgba(100, 116, 139, 0.2);
+    color: #64748b;
+  }
+
+  .sidebar-tag--2 {
+    background: rgba(52, 211, 153, 0.2);
+    color: #059669;
+  }
+
+  .sidebar-tag--3 {
+    background: rgba(251, 191, 36, 0.22);
+    color: #d97706;
+  }
+
+  .sidebar-tag--4 {
+    background: rgba(96, 165, 250, 0.2);
+    color: #2563eb;
+  }
+
+  .sidebar-tag--5 {
+    background: rgba(167, 139, 250, 0.2);
+    color: #7c3aed;
+  }
+
+  html[data-theme="dark"] .sidebar-tag--0,
+  html[data-theme="dark"] .sidebar-tag--1,
+  html[data-theme="dark"] .sidebar-tag--2,
+  html[data-theme="dark"] .sidebar-tag--3,
+  html[data-theme="dark"] .sidebar-tag--4,
+  html[data-theme="dark"] .sidebar-tag--5 {
+    filter: saturate(0.92);
+  }
+
+  .sidebar-empty {
+    font-size: 0.88rem;
+  }
+
+  @media (max-width: 960px) {
+    .sidebar {
+      position: static;
+      order: 2;
+    }
+  }
+</style>

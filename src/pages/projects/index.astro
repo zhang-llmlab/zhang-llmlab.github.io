@@ -6,7 +6,7 @@ const projects = (await getCollection("projects")).filter((item) => !item.data.d
 ---
 
 <BaseLayout title="作品集 | zhang-llmlab">
-  <h1>作品集</h1>
+  <h1 class="page-title">作品集</h1>
   <div class="grid">
     {projects.map((project) => (
       <a class="card project" href={`/projects/${project.slug}`}>
@@ -29,7 +29,19 @@ const projects = (await getCollection("projects")).filter((item) => !item.data.d
     gap: 0.9rem;
   }
   .project {
-    padding: 1rem;
+    padding: 1.1rem 1.15rem;
+    border-radius: var(--radius);
+  }
+  .project h3 {
+    margin: 0 0 0.45rem;
+    font-size: 1.08rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+  .project p {
+    margin: 0;
+    font-size: 0.94rem;
+    line-height: 1.55;
   }
   .chips {
     display: flex;
