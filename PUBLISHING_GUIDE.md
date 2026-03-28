@@ -71,22 +71,25 @@ draft: false
 
 ### 正文配图：复制粘贴自动落盘（编辑器）
 
-Astro 不会改写 Markdown/MDX 里的图片路径；要让「剪贴板里的图」写完文章后还能访问，需要把文件放进 `public/`，再用以 `/` 开头的 URL 引用。本仓库已在工作区配置好 [Paste Image](https://marketplace.visualstudio.com/items?itemName=mushan.vscode-paste-image) 扩展的保存规则（见 `.vscode/settings.json`）。
+Astro 支持在 MDX 正文中用 **相对路径** 引用与文章同目录（或同目录下子文件夹）里的图片，构建时会按本地资源处理。本仓库在 `.vscode/settings.json` 里做了两件事：
 
-1. 在 Cursor / VS Code 中安装扩展：**Paste Image**（`mushan.vscode-paste-image`，打开仓库时也可按提示安装「工作区推荐扩展」）。
-2. 打开某篇博客，例如 `src/content/posts/blog_demo.mdx`。
-3. 截图或复制图片后，使用命令面板 **Paste Image**（默认快捷键因环境而异，可在键盘快捷方式里搜索 `Paste Image`）。
-4. 图片会自动保存到：
+1. 将 `src/content/posts/`、`src/content/projects/` 下的 `.mdx` 在编辑器里按 **Markdown** 打开，这样 Cursor / VS Code **内置**的「粘贴图片」会对 `.mdx` 生效（否则语言模式是 `mdx` 时，Ctrl+V 往往只会出现文件名或无效内容）。
+2. 配置 [Paste Image](https://marketplace.visualstudio.com/items?itemName=mushan.vscode-paste-image) 扩展，使 **Ctrl+Alt+V** 与内置粘贴落到同一目录规则。
 
-   `public/posts/<与当前 mdx 同名的目录>/`
+操作步骤：
 
-   例如当前文件为 `blog_demo.mdx`，则保存为 `public/posts/blog_demo/xxxx.png`，并在正文中插入：
+1. （可选但推荐）安装扩展 **Paste Image**（`mushan.vscode-paste-image`；打开仓库时可按提示安装「工作区推荐扩展」）。
+2. 打开某篇博客，例如 `src/content/posts/blog_demo.mdx`，并 **先保存文件**（未保存时无法按文件名创建子目录）。
+3. 截图或复制图片到剪贴板后：
+   - **Ctrl+V**：使用编辑器内置 Markdown 粘贴；或
+   - **Ctrl+Alt+V** / 命令面板 **Paste Image**：使用扩展粘贴。
+4. 图片会保存到与当前文件同目录、以 **当前文件主名** 命名的子文件夹，例如 `blog_demo.mdx` 对应 `src/content/posts/blog_demo/xxxx.png`，正文插入类似：
 
-   `![](/posts/blog_demo/xxxx.png)`
+   `![](./blog_demo/xxxx.png)`
 
-5. **封面图**仍建议在 frontmatter 里写指向 `public` 的路径，例如：`cover: "/covers/xxx.jpg"`（文件放在 `public/covers/`）。
+5. **封面图**仍建议在 frontmatter 里写 `public` 下的站点根路径，例如：`cover: "/covers/xxx.jpg"`（文件放在 `public/covers/`）。
 
-若粘贴后插入的路径不对：检查 `.vscode/settings.json` 是否被个人设置覆盖；或在扩展设置里确认 `pasteImage.path` / `pasteImage.insertPattern` 与仓库一致。
+若粘贴仍无效：确认已重新加载窗口使 `files.associations` 生效；检查个人设置是否覆盖了工作区的 `markdown.copyFiles.destination`；远程 SSH 场景下剪贴板常在远端，需在本机仓库内贴图后提交推送。
 
 ---
 

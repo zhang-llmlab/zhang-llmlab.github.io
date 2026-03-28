@@ -11,10 +11,13 @@ export async function getStaticPaths() {
     categories.add(entry.data.category);
   });
 
-  return Array.from(categories).map((category) => ({ params: { category } }));
+  return Array.from(categories).map((category) => ({
+    params: { category: encodeURIComponent(category) }
+  }));
 }
 
-const { category } = Astro.params;
+// 分类名里可能含「/」（如 AI/Agent）；必须整段编码，否则会被当成多段路径导致构建失败。
+const category = decodeURIComponent(Astro.params.category ?? "");
 const posts = (await getCollection("posts")).filter(
   (item) => !item.data.draft && item.data.category === category
 );
