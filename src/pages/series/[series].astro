@@ -6,12 +6,13 @@ export async function getStaticPaths() {
   const posts = (await getCollection("posts")).filter((item) => !item.data.draft && item.data.series);
   const names = new Set<string>();
   posts.forEach((post) => names.add(post.data.series as string));
+  // params 必须为「未编码」字符串；若在此处 encodeURIComponent，会与页面里 href 的编码叠成双重编码，线上易出现 404。
   return Array.from(names).map((series) => ({
-    params: { series: encodeURIComponent(series) }
+    params: { series }
   }));
 }
 
-const seriesName = decodeURIComponent(Astro.params.series ?? "");
+const seriesName = Astro.params.series ?? "";
 const posts = (await getCollection("posts"))
   .filter((item) => !item.data.draft && item.data.series === seriesName)
   .sort((a, b) => {
