@@ -72,7 +72,15 @@
           "default": []
         },
         "toc": {
-          "type": "boolean",
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "string",
+              "const": "inline"
+            }
+          ],
           "default": true
         },
         "tags": {

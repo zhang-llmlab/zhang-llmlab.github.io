@@ -11,7 +11,7 @@ export async function getStaticPaths() {
 }
 
 const { post } = Astro.props;
-const { Content } = await render(post);
+const { Content, headings } = await render(post);
 const seriesItems = post.data.series
   ? (await getCollection("posts"))
       .filter((item) => !item.data.draft && item.data.series === post.data.series)
@@ -47,6 +47,8 @@ const nextInSeries =
   currentSlug={post.slug}
   prevInSeries={prevInSeries}
   nextInSeries={nextInSeries}
+  headings={headings}
+  toc={post.data.toc}
 >
   <Content />
 </PostLayout>

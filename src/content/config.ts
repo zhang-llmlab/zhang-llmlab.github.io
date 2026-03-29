@@ -12,7 +12,8 @@ const posts = defineCollection({
     series: z.string().optional(),
     seriesOrder: z.number().int().positive().optional(),
     keywords: z.array(z.string()).default([]),
-    toc: z.boolean().default(true),
+    /** 目录：`true` 为正文左侧粘性目录；`inline` 为文首目录块；`false` 关闭 */
+    toc: z.union([z.boolean(), z.literal("inline")]).default(true),
     tags: z.array(z.string()).default([]),
     category: z.string().default("未分类"),
     draft: z.boolean().default(false),

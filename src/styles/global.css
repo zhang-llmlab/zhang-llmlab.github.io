@@ -23,6 +23,7 @@
   --code-border: rgba(180, 170, 150, 0.16);
   --code-inline-bg: rgba(201, 169, 98, 0.1);
   --code-inline-border: rgba(201, 169, 98, 0.22);
+  --code-inline-fg: #f0ead8;
   --focus: rgba(201, 169, 98, 0.5);
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --content-max: 1200px;
@@ -63,6 +64,7 @@ html[data-theme="light"] {
   --code-border: rgba(30, 60, 50, 0.12);
   --code-inline-bg: rgba(184, 146, 58, 0.12);
   --code-inline-border: rgba(184, 146, 58, 0.25);
+  --code-inline-fg: #5a4308;
   --focus: rgba(184, 146, 58, 0.45);
   --body-bg: radial-gradient(ellipse 780px 440px at 12% -10%, rgba(120, 180, 140, 0.14), transparent 55%),
     radial-gradient(ellipse 620px 400px at 88% 8%, rgba(100, 180, 200, 0.1), transparent 50%),

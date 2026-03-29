@@ -1,13 +1,9 @@
 
 export default new Map([
-["src/content/posts/ai-agent-01-architecture.mdx", () => import("astro:content-layer-deferred-module?astro%3Acontent-layer-deferred-module=&fileName=src%2Fcontent%2Fposts%2Fai-agent-01-architecture.mdx&astroContentModuleFlag=true")],
-["src/content/posts/ai-agent-02-tooling.mdx", () => import("astro:content-layer-deferred-module?astro%3Acontent-layer-deferred-module=&fileName=src%2Fcontent%2Fposts%2Fai-agent-02-tooling.mdx&astroContentModuleFlag=true")],
-["src/content/posts/ai-agent-03-evaluation.mdx", () => import("astro:content-layer-deferred-module?astro%3Acontent-layer-deferred-module=&fileName=src%2Fcontent%2Fposts%2Fai-agent-03-evaluation.mdx&astroContentModuleFlag=true")],
-["src/content/posts/nlp-01-tokenization-subword.mdx", () => import("astro:content-layer-deferred-module?astro%3Acontent-layer-deferred-module=&fileName=src%2Fcontent%2Fposts%2Fnlp-01-tokenization-subword.mdx&astroContentModuleFlag=true")],
-["src/content/posts/nlp-02-attention-intuition.mdx", () => import("astro:content-layer-deferred-module?astro%3Acontent-layer-deferred-module=&fileName=src%2Fcontent%2Fposts%2Fnlp-02-attention-intuition.mdx&astroContentModuleFlag=true")],
-["src/content/posts/nlp-04-embeddings-semantic-search.mdx", () => import("astro:content-layer-deferred-module?astro%3Acontent-layer-deferred-module=&fileName=src%2Fcontent%2Fposts%2Fnlp-04-embeddings-semantic-search.mdx&astroContentModuleFlag=true")],
-["src/content/posts/nlp-03-ner-basics.mdx", () => import("astro:content-layer-deferred-module?astro%3Acontent-layer-deferred-module=&fileName=src%2Fcontent%2Fposts%2Fnlp-03-ner-basics.mdx&astroContentModuleFlag=true")],
+["src/content/posts/llm-app-01-深度学习基础.mdx", () => import("astro:content-layer-deferred-module?astro%3Acontent-layer-deferred-module=&fileName=src%2Fcontent%2Fposts%2Fllm-app-01-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E5%9F%BA%E7%A1%80.mdx&astroContentModuleFlag=true")],
+["src/content/posts/pytorch-01-张量的创建和操作.mdx", () => import("astro:content-layer-deferred-module?astro%3Acontent-layer-deferred-module=&fileName=src%2Fcontent%2Fposts%2Fpytorch-01-%E5%BC%A0%E9%87%8F%E7%9A%84%E5%88%9B%E5%BB%BA%E5%92%8C%E6%93%8D%E4%BD%9C.mdx&astroContentModuleFlag=true")],
 ["src/content/projects/portfolio-site.mdx", () => import("astro:content-layer-deferred-module?astro%3Acontent-layer-deferred-module=&fileName=src%2Fcontent%2Fprojects%2Fportfolio-site.mdx&astroContentModuleFlag=true")],
-["src/content/posts/blog_demo.mdx", () => import("astro:content-layer-deferred-module?astro%3Acontent-layer-deferred-module=&fileName=src%2Fcontent%2Fposts%2Fblog_demo.mdx&astroContentModuleFlag=true")],
-["src/content/posts/welcome.mdx", () => import("astro:content-layer-deferred-module?astro%3Acontent-layer-deferred-module=&fileName=src%2Fcontent%2Fposts%2Fwelcome.mdx&astroContentModuleFlag=true")]]);
+["src/content/posts/pytorch-02-张量的索引形状操作.mdx", () => import("astro:content-layer-deferred-module?astro%3Acontent-layer-deferred-module=&fileName=src%2Fcontent%2Fposts%2Fpytorch-02-%E5%BC%A0%E9%87%8F%E7%9A%84%E7%B4%A2%E5%BC%95%E5%BD%A2%E7%8A%B6%E6%93%8D%E4%BD%9C.mdx&astroContentModuleFlag=true")],
+["src/content/posts/pytorch-03-自动微分.mdx", () => import("astro:content-layer-deferred-module?astro%3Acontent-layer-deferred-module=&fileName=src%2Fcontent%2Fposts%2Fpytorch-03-%E8%87%AA%E5%8A%A8%E5%BE%AE%E5%88%86.mdx&astroContentModuleFlag=true")],
+["src/content/posts/pytorch-04-线性回归案例.mdx", () => import("astro:content-layer-deferred-module?astro%3Acontent-layer-deferred-module=&fileName=src%2Fcontent%2Fposts%2Fpytorch-04-%E7%BA%BF%E6%80%A7%E5%9B%9E%E5%BD%92%E6%A1%88%E4%BE%8B.mdx&astroContentModuleFlag=true")]]);
 		

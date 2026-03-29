@@ -1,8 +1,11 @@
 ---
+import type { MarkdownHeading } from "astro";
 import "../styles/prose.css";
+import ArticleToc from "../components/ArticleToc.astro";
 import BaseLayout from "./BaseLayout.astro";
 import Giscus from "../components/Giscus.astro";
 import MermaidRuntime from "../components/MermaidRuntime.astro";
+import ScrollJumps from "../components/ScrollJumps.astro";
 
 interface Props {
   title: string;
@@ -16,6 +19,9 @@ interface Props {
   prevInSeries?: { slug: string; title: string; order?: number };
   nextInSeries?: { slug: string; title: string; order?: number };
   showComments?: boolean;
+  headings?: MarkdownHeading[];
+  /** `true` 左侧目录；`inline` 文首目录；`false` 关闭 */
+  toc?: boolean | "inline";
 }
 
 const {
@@ -29,8 +35,17 @@ const {
   currentSlug,
   prevInSeries,
   nextInSeries,
-  showComments = true
+  showComments = true,
+  headings = [],
+  toc = true
 } = Astro.props;
+
+// MDX 正文里允许使用 h1 作为“一级标题”（如 `# 1 xxx`）。
+// 目录只收集正文 headings（Astro 的 headings 会包含 slug 的标题），并限制到 h1–h5。
+const tocHeadings = headings.filter((h) => h.depth >= 1 && h.depth <= 5 && h.slug);
+const tocOn = toc !== false;
+const showSidebarToc = tocOn && toc !== "inline" && tocHeadings.length > 0;
+const showInlineToc = tocOn && toc === "inline" && tocHeadings.length > 0;
 ---
 
 <BaseLayout title={title} description={description}>
@@ -50,8 +65,14 @@ const {
         )
       }
     </header>
-    <div class="content prose">
-      <slot />
+    <div class:list={["article-body", { "article-body--with-toc": showSidebarToc }]}>
+      {showSidebarToc && <ArticleToc headings={tocHeadings} variant="sidebar" />}
+      <div class="article-main">
+        {showInlineToc && <ArticleToc headings={tocHeadings} variant="inline" />}
+        <div class="content prose">
+          <slot />
+        </div>
+      </div>
     </div>
   </article>
   {
@@ -95,6 +116,7 @@ const {
   }
   {showComments && <Giscus />}
   <MermaidRuntime />
+  <ScrollJumps />
 </BaseLayout>
 
 <style>
@@ -130,12 +152,34 @@ const {
     gap: 0.5rem;
     flex-wrap: wrap;
   }
-  .content {
-    position: relative;
+  .article-body {
     margin-top: 1.35rem;
     padding-top: 1.45rem;
+    position: relative;
+    display: grid;
+    gap: 1.25rem;
+    align-items: start;
   }
-  .content::before {
+
+  .article-body--with-toc {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  @media (min-width: 1080px) {
+    .article-body--with-toc {
+      grid-template-columns: minmax(11rem, 13.5rem) minmax(0, 1fr);
+      gap: 1.75rem;
+    }
+  }
+
+  .article-main {
+    min-width: 0;
+  }
+
+  .content {
+    position: relative;
+  }
+  .article-body::before {
     content: "";
     position: absolute;
     top: 0;

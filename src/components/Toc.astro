@@ -1,0 +1,110 @@
+---
+/**
+ * 在 MDX 正文中任意位置插入目录（根据同级 `.content.prose` 内 h2–h5 自动生成）。
+ * 用法：import Toc from '../../components/Toc.astro'; 然后写 <Toc />
+ */
+---
+
+<nav class="article-toc article-toc--embedded card" aria-label="目录" data-toc-embed>
+  <p class="article-toc__title">目录</p>
+  <div class="article-toc__embed-inner" data-toc-embed-inner></div>
+</nav>
+
+<script is:inline>
+  (function () {
+    function fillTocEmbeds() {
+      document.querySelectorAll("[data-toc-embed]").forEach(function (root) {
+        var inner = root.querySelector("[data-toc-embed-inner]");
+        if (!inner) return;
+        inner.innerHTML = "";
+        var article = root.closest("article");
+        var content = article && article.querySelector(".content.prose");
+        if (!content) return;
+        var hs = content.querySelectorAll("h1, h2, h3, h4, h5");
+        var frag = document.createDocumentFragment();
+        var count = 0;
+        hs.forEach(function (h) {
+          var id = h.id;
+          if (!id) return;
+          var a = document.createElement("a");
+          a.href = "#" + id;
+          a.className = "article-toc__embed-link article-toc__embed-link--d" + h.tagName.slice(1);
+          a.textContent = (h.textContent || "").trim();
+          frag.appendChild(a);
+          count++;
+        });
+        inner.appendChild(frag);
+        root.classList.toggle("is-empty", count === 0);
+      });
+    }
+
+    fillTocEmbeds();
+    document.addEventListener("astro:page-load", fillTocEmbeds);
+  })();
+</script>
+
+<style>
+  .article-toc--embedded {
+    margin: 1.25rem 0;
+    padding: 0.95rem 1.05rem;
+    border-radius: var(--radius);
+  }
+
+  .article-toc--embedded.is-empty {
+    display: none;
+  }
+
+  .article-toc__title {
+    margin: 0 0 0.5rem;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  .article-toc__embed-inner {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    max-height: min(42vh, 18rem);
+    overflow: auto;
+    scrollbar-gutter: stable;
+  }
+
+  .article-toc__embed-link {
+    display: block;
+    padding: 0.2rem 0;
+    font-size: 0.86rem;
+    line-height: 1.45;
+    color: var(--text-soft);
+    text-decoration: none;
+    border-radius: 4px;
+    transition: color 0.15s ease;
+  }
+
+  .article-toc__embed-link:hover {
+    color: var(--brand);
+  }
+
+  .article-toc__embed-link--d3 {
+    padding-left: 0.65rem;
+  }
+
+  .article-toc__embed-link--d2 {
+    padding-left: 0.25rem;
+  }
+
+  .article-toc__embed-link--d4 {
+    padding-left: 1.15rem;
+  }
+
+  .article-toc__embed-link--d5 {
+    padding-left: 1.65rem;
+  }
+
+  .article-toc__embed-link--d1 {
+    font-weight: 650;
+    color: var(--text);
+  }
+</style>

@@ -17,6 +17,7 @@
     "katex": "^0.16.21",
     "mermaid": "^11.6.0",
     "rehype-katex": "^7.0.1",
+    "rehype-slug": "^6.0.0",
     "remark-math": "^6.0.0",
     "typed.js": "^3.0.0"
   },

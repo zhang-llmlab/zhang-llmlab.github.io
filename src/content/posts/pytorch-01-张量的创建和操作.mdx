@@ -1,0 +1,644 @@
+---
+title: "PyTorch 张量的创建与常用操作"
+description: "系统梳理 PyTorch 张量从创建、dtype/device 到 NumPy 互转、运算（in-place / 矩阵乘法）以及拼接（cat / stack）的关键用法与注意事项。"
+pubDate: 2026-03-28
+updatedDate: 2026-03-28
+
+# 知识博客扩展字段
+level: "beginner" # beginner | intermediate | advanced
+audience: ["学生", "初级工程师"]
+series: "深度学习基础"
+seriesOrder: 1
+keywords: ["PyTorch", "张量", "dtype", "device", "NumPy", "cat", "stack"]
+toc: true
+
+# 站点聚合字段
+tags: ["PyTorch", "深度学习", "张量", "NumPy"]
+category: "深度学习"
+cover: "/covers/ml-bias-variance.jpg"
+draft: false
+---
+
+> 读前提示（AI/机器学习视角）
+> - **适合人群**：正在学习深度学习框架的同学、希望从 NumPy 过渡到 PyTorch 的工程师、准备搭建训练代码（数据预处理/前向/损失计算）的初学者。
+> - **前置知识**：了解 Python 基础语法、列表与函数；知道矩阵/向量的基本概念；对“模型训练需要张量输入”有初步认知即可。
+> - **读完收获**：你会建立一套可迁移到项目中的张量心智模型——创建方式如何选、`dtype/device` 如何避免隐性 bug、何时共享内存、何时会触发拷贝，以及常见运算与拼接在训练流程中的典型用法。
+
+
+
+在 PyTorch 中，`Tensor` 可以理解为“带有形状（`shape`）+ 数据类型（`dtype`）+ 存放设备（`device`）的多维数组”。本文按从易到难的顺序，带你完成：常见张量创建方式、dtype 转换、device 管理、与 NumPy 的内存共享/拷贝关系，以及常用运算与拼接（`cat` / `stack`）。
+
+# 1 张量的创建
+```python
+import torch
+import numpy as np
+```
+
+
+## 1.1 根据已有的数据创建张量
+* 使用 `torch.tensor()`：根据输入数据推断 `dtype`，也可以显式指定 `dtype` / `device`
+* Python / NumPy 输入的 `dtype` 推断规则不同：例如 `np.random.randn` 默认是 `float64`，而 Python float 通常会落到 PyTorch 默认浮点类型（常见为 `float32`）
+```python
+def tensor_create_from_existing_data():
+
+    # 1.1 创建标量
+    data = torch.tensor(10)
+    print(data)
+
+    # 1.2 使用numpy数组来创建张量
+    # numpy 默认是 float64
+    data = np.random.randn(2, 3)  # float64
+    # 显式指定 dtype，避免 float64 / float32 混用
+    data = torch.tensor(data, dtype=torch.float32)
+    print(data)
+
+    # 1.3 使用list列表创建张量
+    # 传入包含 Python float 的 list，默认通常是 float32
+    data = [[10., 20., 30.], [40., 50., 60.]]
+    data = torch.tensor(data)
+    print(data)
+```
+## 1.2 创建指定形状的张量
+* `torch.empty()`：根据 shape 创建张量，但不初始化（内容不保证可控），速度快
+* 常见需求是再配合 `dtype` / `device` 显式指定
+```python
+def tensor_empty_shape():
+    x = torch.empty((2, 3))  # 仅根据形状创建，值不做保证
+    print(x.shape, x.dtype, x.device)
+
+    y = torch.empty((2, 3), dtype=torch.float32, device="cpu")
+    print(y.shape, y.dtype, y.device)
+```
+## 1.3 创建指定类型的张量
+* 使用 `torch.tensor(..., dtype=...)`：显式指定 `dtype`（推荐写法）
+```python
+def tensor_create_with_dtype():
+    # 显式指定 int32
+    x = torch.tensor([[1, 2, 3], [4, 5, 6]], dtype=torch.int32)
+    print(x, x.dtype)
+
+    # float -> int32：类型转换（小数部分会被截断）
+    y = torch.tensor([2.5, 3.5], dtype=torch.int32)
+    print(y, y.dtype)
+```
+
+
+
+## 1.4 创建线性张量
+```python
+import torch
+
+def tensor_create_linear_sequences():
+
+    # 1.1 创建指定步长的张量
+    # 第一参数: 开始值
+    # 第二个参数: 结束值（不包含 end）
+    # 第三参数: 步长
+    data = torch.arange(0, 10, 2)  # tensor([0, 2, 4, 6, 8])
+    print(data)
+
+    # 1.2 在指定区间指定元素个数
+    # 第一个参数: 开始值
+    # 第二个参数: 结束值（包含 end）
+    # 第三个参数: 创建元素的个数
+    data = torch.linspace(0, 11, 10) # tensor([ 0.0000,  1.2222,  2.4444,  3.6667,  4.8889,  6.1111,  7.3333,  8.5556,
+         # 9.7778, 11.0000])
+    print(data)
+```
+
+## 1.5 创建随机张量
+```python
+def tensor_create_random_values():
+
+    # 固定随机数种子
+    # 设置随机种子之后，就可以固定随机数
+    # 下面的代码，每次执行，产生的随机数都是一样的
+    torch.manual_seed(0)
+    
+    # 2.1 创建随机张量
+    # torch.randn - 从标准正态分布 N(0, 1) 采样
+    # torch.randint(low, high, (shape)) - 整型随机数，范围为 [low, high)
+    data = torch.randn(2, 3)
+    print(data)
+
+    int_data = torch.randint(0, 10, (2, 3))
+    print(int_data)
+
+    # 当前随机种子（用于可复现实验的检查）
+    print('当前随机种子:', torch.initial_seed())
+```
+
+
+
+## 1.6 创建全为0的张量
+```python
+def tensor_create_zeros_examples():
+
+    # 1.1 创建指定形状全为0的张量
+    data = torch.zeros(2, 3)
+    print(data)
+
+    # 1.2 根据其他张量的形状去创建全0张量
+    data = torch.zeros_like(data)
+    print(data)
+```
+
+## 1.7 创建全为1的张量
+```python
+def tensor_create_ones_examples():
+
+    # 2.1 创建指定形状全为1的张量
+    data = torch.ones(2, 3)
+    print(data)
+
+    # 2.2 根据其他张量的形状去创建全1张量
+    data = torch.ones_like(data)
+    print(data)
+```
+
+## 1.8 创建全为指定值的张量
+```python
+def tensor_create_full_examples():
+
+    # 3.1 创建形状为2行3列，值全部为10的张量
+    data = torch.full([2, 3], 100)
+    print(data)
+
+    # 3.2 创建一个形状和data一样，但是值全部为200的张量
+    data = torch.full_like(data, 200)
+    print(data)
+```
+## 1.9 张量元素类型转换
+```python
+import torch
+
+# 1. 使用 to(dtype=...) 进行转换（推荐）
+def tensor_to_dtype():
+    x = torch.full((2, 3), 10, dtype=torch.int32)
+    print('原始 dtype:', x.dtype)
+
+    y = x.to(dtype=torch.float64)
+    print('float64 dtype:', y.dtype)
+
+
+# 2. 使用便捷函数转换（double/float/int/long 等）
+def tensor_dtype_shortcuts():
+    x = torch.full((2, 3), 10.0)  # 默认通常是 float32
+    print('原始 dtype:', x.dtype)
+
+    y = x.double()
+    print('double dtype:', y.dtype)
+
+    z = y.int()    # int32
+    w = y.long()   # int64
+    print('int dtype:', z.dtype, 'long dtype:', w.dtype)
+```
+
+# 2 张量运算
+## 2.1 张量的基本运算
+* 非 in-place（不带下划线）版本不会修改原张量，会返回新张量
+* in-place（带下划线）版本会修改原张量；若参与自动求导（训练），需要格外小心
+```python
+# 1. 不修改原数据的计算
+# 函数不带下划线，计算完成之后会返回一个新的张量
+def tensor_basic_ops_out_of_place():
+
+    # 产生指定形状的整型随机张量
+    # 第一个参数: 开始值
+    # 第二个参数: 结束值
+    # 第三个参数: 形状
+    data = torch.randint(0, 10, [2, 3])
+    print(data)
+
+    # 计算完成之后，会返回一个新的张量
+    # 与标量数值进行计算
+    data = data.add(10)
+    print(data)
+
+    # data.sub()  # 减法
+    # data.mul()  # 乘法
+    # data.div()  # 除法
+    # data.neg()  # 取相反数
+
+# 2. 修改原数据的计算(inplace方式的计算)
+def tensor_basic_ops_in_place():
+
+    data = torch.randint(0, 10, [2, 3])
+    print(data)
+
+    # 带下划线的版本的函数直接修改原数据，不需要用新的变量保存
+    data.add_(10)
+    print(data)
+
+    # data.sub_()  # 减法
+    # data.mul_()  # 乘法
+    # data.div_()  # 除法
+    # data.neg_()  # 取相反数
+```
+
+## 2.2 阿达玛积
+* 对应位置的元素进行相乘
+```python
+import torch
+
+
+# 1. 使用 mul 函数
+# 阿达玛积计算：矩阵对应位置相乘
+def hadamard_product_with_mul():
+
+    data1 = torch.tensor([[1, 2], [3, 4]])
+    data2 = torch.tensor([[5, 6], [7, 8]])
+
+    data = data1.mul(data2)
+    print(data)
+
+
+# 2. 使用 * 号运算符
+def hadamard_product_with_operator():
+
+    data1 = torch.tensor([[1, 2], [3, 4]])
+    data2 = torch.tensor([[5, 6], [7, 8]])
+
+    data = data1 * data2
+    print(data)
+```
+
+## 2.3 矩阵乘法（matmul / mm / bmm）
+* 使用 `@` 或 `torch.matmul`：支持向量/矩阵/批量张量的矩阵乘法，并遵循广播规则
+* `torch.mm`：仅支持二维矩阵（2D）
+* `torch.bmm`：仅支持三维批量矩阵（3D）
+```python
+import torch
+
+# 1. 使用 @ 运算符
+# 按照矩阵运算的规则进行运算 - 矩阵乘法
+def matrix_multiply_with_operator():
+
+    # 形状为: 3行2列
+    data1 = torch.tensor([[1, 2],
+                          [3, 4],
+                          [5, 6]])
+    # 形状为: 2行2列
+    data2 = torch.tensor([[5, 6],
+                          [7, 8]])
+    data = data1 @ data2
+    print(data)
+
+
+# 2. 使用 mm 函数
+# 两个运算的矩阵是必须是二维的
+def matrix_multiply_with_mm():
+
+    # 要求输入的张量形状都是二维
+    # 形状为: 3行2列
+    data1 = torch.tensor([[1, 2],
+                          [3, 4],
+                          [5, 6]])
+    # 形状为: 2行2列
+    data2 = torch.tensor([[5, 6],
+                          [7, 8]])
+
+    data = torch.mm(data1, data2)
+    print(data)
+
+
+# 3. 使用 bmm 函数
+# 传入的两个矩阵必须是三维的
+def matrix_multiply_with_bmm():
+
+    # 第一个维度: 表示批次
+    # 第二个维度: 多少行
+    # 第三个维度: 多少列
+    data1 = torch.randn(3, 4, 5)
+    data2 = torch.randn(3, 5, 8)
+    
+    data = torch.bmm(data1, data2)
+    print(data.shape)
+
+
+# 4. 使用 matmul 函数
+
+def matrix_multiply_with_matmul():
+
+    # 对二维进行计算
+    data1 = torch.randn(4, 5)
+    data2 = torch.randn(5, 8)
+    print(torch.matmul(data1, data2).shape)
+    
+    # 对三维进行计算
+    data1 = torch.randn(3, 4, 5)
+    data2 = torch.randn(3, 5, 8)
+    print(torch.matmul(data1, data2).shape)
+
+    # 也可以进行计算
+    data1 = torch.randn(3, 4, 5)
+    data2 = torch.randn(5, 8)
+    print(torch.matmul(data1, data2).shape)
+```
+
+## 2.4 指定设备进行运算
+* 张量运算可以运行在CPU中，也可以运算在GPU当中
+* 创建张量的时候，可以通过device参数指定设备
+* 使用 `tensor.to(device)` 指定运算设备（推荐统一写法）
+* 在不同 device 上的张量不能直接进行运算，需要先移动到同一 device
+```python
+import torch
+
+def tensor_device_demo():
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+    x = torch.tensor([10, 20, 30])  # 默认在 CPU
+    print('默认设备:', x.device)
+
+    x = x.to(device)
+    print('to(device) 后:', x.device)
+
+
+def tensor_create_on_device():
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    x = torch.tensor([10, 20, 30], device=device)
+    print('直接创建:', x.device)
+
+
+def tensor_cuda_shortcut():
+    # cuda() 是 to(device) 的 CUDA 便捷写法，但需要 CUDA 可用
+    if torch.cuda.is_available():
+        x = torch.tensor([10, 20, 30]).cuda()
+        print('cuda() 后:', x.device)
+        x = x.cpu()
+        print('cpu() 后:', x.device)
+
+
+def tensor_mismatched_device_note():
+    if torch.cuda.is_available():
+        cpu_x = torch.tensor([10, 20, 30], device="cpu")
+        gpu_x = torch.tensor([10, 20, 30], device="cuda:0")
+        # cpu_x + gpu_x 会报错：不同 device 的张量不能直接相加
+        # y = cpu_x + gpu_x
+```
+
+# 3 张量与numpy数组转换
+## 3.1 张量转换为numpy数组
+* `tensor.numpy()`：将 CPU 张量转换为 NumPy 数组，二者共享内存（修改会相互影响）
+* 若张量在 GPU 上或带梯度（`requires_grad=True`），需先 `.detach().cpu()` 再转
+* 若不希望共享内存：对 NumPy 结果使用 `.copy()`
+
+```python
+import torch
+
+
+# 1. 张量转换为numpy数组
+def tensor_to_numpy_basic():
+
+    data_tensor = torch.tensor([2, 3, 4])
+    # 将 CPU 张量转换为 numpy（共享内存）
+    data_numpy = data_tensor.numpy()
+
+    print(type(data_tensor))
+    print(type(data_numpy))
+
+    print(data_tensor)
+    print(data_numpy)
+
+
+# 2. 张量和numpy数组共享内存
+def tensor_numpy_shared_memory_demo():
+
+    data_tensor = torch.tensor([2, 3, 4])
+    data_numpy = data_tensor.numpy()
+
+    # 修改张量元素的值，看看numpy数组是否会发生变化？会发生变化
+    # data_tensor[0] = 100
+    # print(data_tensor)
+    # print(data_numpy)
+
+    # 修改numpy数组元素的值，看看张量是否会发生变化？会发生变化
+    data_numpy[0] = 100
+    print(data_tensor)
+    print(data_numpy)
+
+
+# 3. 使用copy函数实现不共享内存
+def tensor_numpy_copy_isolated_memory():
+
+    data_tensor = torch.tensor([2, 3, 4])
+    # copy() 会复制数据，从而切断共享内存关系
+    data_numpy = data_tensor.numpy().copy()
+
+    # 修改张量元素的值，看看numpy数组是否会发生变化？没有发生变化
+    # data_tensor[0] = 100
+    # print(data_tensor)
+    # print(data_numpy)
+
+    # 修改numpy数组元素的值，看看张量是否会发生变化？没有发生变化
+    data_numpy[0] = 100
+    print(data_tensor)
+    print(data_numpy)
+
+```
+
+## 3.2 numpy数组转换为张量
+* `torch.from_numpy(ndarray)`：与 ndarray 共享内存（修改会相互影响）
+* `torch.tensor(ndarray)`：默认会复制数据（不共享内存）
+
+```python
+import torch
+import numpy as np
+
+
+# 1) from_numpy：共享内存
+def test_from_numpy_shared_memory():
+    data_numpy = np.array([2, 3, 4])
+    data_tensor = torch.from_numpy(data_numpy)  # 与 ndarray 共享内存
+
+    print('初始:', data_numpy, data_tensor)
+
+    data_numpy[0] = 100
+    print('numpy 修改后:', data_numpy, data_tensor)
+
+    data_tensor[1] = 200
+    print('tensor 修改后:', data_numpy, data_tensor)
+
+
+# 2) torch.tensor：默认复制，不共享内存
+def test_torch_tensor_not_shared():
+    data_numpy = np.array([2, 3, 4])
+    data_tensor = torch.tensor(data_numpy)  # 复制数据
+
+    data_numpy[0] = 100
+    data_tensor[1] = 200
+
+    print('numpy 修改后:', data_numpy)
+    print('tensor 修改后:', data_tensor)
+```
+
+## 3.3 提取单值张量
+* 单值张量虽然只有一个值，但是仍然为张量类型
+```python
+import torch
+
+
+def tensor_scalar_item_examples():
+
+    t1 = torch.tensor(30)
+    t2 = torch.tensor([30])
+    t3 = torch.tensor([[30]])
+
+    print(t1.shape)
+    print(t2.shape)
+    print(t3.shape)
+
+    print(t1.item())
+    print(t2.item())
+    print(t3.item())
+
+    # 注意: 张量中只有一个元素，如果有多个元素的话，使用 item 函数可能就会报错
+    # ValueError: only one element tensors can be converted to Python scalars
+    # t4 = torch.tensor([30, 40])
+    # print(t4.item())
+```
+
+# 4 张量的拼接
+## 4.1 cat函数使用
+* `cat`：在指定 `dim` 上拼接；除拼接维度外，其它维度大小必须一致
+```python
+import torch
+
+
+def tensor_cat_examples():
+
+    # 固定随机数种子
+    torch.manual_seed(0)
+
+    data1 = torch.randint(0, 10, [3, 4, 5])
+    data2 = torch.randint(0, 10, [3, 4, 5])
+
+    print(data1.shape)
+    print(data2.shape)
+
+
+    # 1. 按照0维度进行拼接
+    new_data = torch.cat([data1, data2], dim=0)
+    print(new_data.shape) # [6,4,5]
+
+    # 2. 按照1维度进行拼接
+    new_data = torch.cat([data1, data2], dim=1)
+    print(new_data.shape) # [3,8,5]
+
+    # 3. 按照2维度进行拼接
+    new_data = torch.cat([data1, data2], dim=2)
+    print(new_data.shape) # [3,4,10]
+
+    # 注意: dim 必须保证是有效的
+    # new_data = torch.cat([data1, data2], dim=3)
+    # print(new_data.shape)
+```
+  
+## 4.2 stack函数使用
+* `stack`：在新维度插入一层再拼接；因此会比原张量多一个维度（且输入张量 shape 必须完全一致）
+```python
+import torch
+
+
+def tensor_stack_examples():
+
+    # stack()
+    # 按照一定维度,从两个张量中各自取一个元素,组合成新的元素,形成新的张量
+    # 会改变原有张量的维度
+
+    torch.manual_seed(0)
+    data1 = torch.randint(0, 10, [2, 3])
+    data2 = torch.randint(0, 10, [2, 3])
+
+    print(data1)
+    print(data2)
+    print('-' * 30)
+
+    # 将两个张量 stack 起来，像 cat 一样指定维度
+    # 1. 按照0维度进行叠加
+    # 将两个二维张量作为元素进行堆叠,变为一个三维,变为两个两行三列 (2,2,3)
+    new_data = torch.stack([data1, data2], dim=0)
+    print(new_data.shape)
+    print(new_data)
+    print('-' * 30)
+
+    # 2. 按照1维度进行叠加
+    # 将二维张量中的第一层中的元素进行拼接
+    # 这里是两个一维向量进行拼接
+    new_data = torch.stack([data1, data2], dim=1)
+    print(new_data.shape)
+    print(new_data)
+    print('-' * 30)
+
+    # 3. 按照2维度进行叠加
+    # 将二维张量中,按照元素进行拼接
+    new_data = torch.stack([data1, data2], dim=2)
+    print(new_data.shape)
+    print(new_data)
+    print('-' * 30)
+
+```
+## 5 张量的形状与维度变换
+在实际深度学习训练中，`shape` 的调整几乎是家常便饭。常用方法包括：
+- `reshape`：改变形状（比 `view` 更通用）
+- `view`：需要内存连续（`contiguous`）时更合适
+- `unsqueeze / squeeze`：新增或移除维度
+- `transpose / permute`：交换维度顺序
+
+```python
+import torch
+
+def tensor_shape_ops():
+    # 1) reshape：创建一个新形状（尽量不拷贝；必要时会拷贝）
+    x = torch.arange(12).reshape(3, 4)  # (3, 4)
+    print('x:', x.shape, 'contiguous:', x.is_contiguous())
+
+    # 2) unsqueeze / squeeze：插入或删除维度
+    y = x.unsqueeze(0)  # (1, 3, 4)
+    z = y.squeeze(0)    # (3, 4)
+    print('unsqueeze:', y.shape, 'squeeze:', z.shape)
+
+    # 3) transpose：交换两个维度（通常会产生非 contiguous）
+    x_t = x.transpose(0, 1)  # (4, 3)
+    print('transpose:', x_t.shape, 'contiguous:', x_t.is_contiguous())
+
+    # 4) permute：交换任意维度顺序
+    x_p = x.permute(1, 0)  # 等价于 transpose(0, 1)
+    print('permute:', x_p.shape)
+
+    # 5) view：当需要时，先保证 contiguous 再 view
+    flat = x_t.contiguous().view(-1)
+    print('view(-1):', flat.shape)
+```
+
+## 6 广播（Broadcasting）与逐元素运算
+当你做 `+ - * /` 等逐元素运算时，PyTorch 会自动应用广播规则。核心要点是：**从最后一维开始对齐，维度大小相同或为 1 时可以广播**。
+
+```python
+import torch
+
+def broadcasting_demo():
+    a = torch.tensor([[1, 2, 3],
+                      [4, 5, 6]])  # (2, 3)
+
+    b = torch.tensor([10, 20, 30])   # (3,)
+    c = a + b  # b 广播到 (2, 3)
+    print('a + b:', c.shape)
+
+    d = torch.tensor([[1],
+                      [2]])         # (2, 1)
+    e = a * d  # d 广播到 (2, 3)
+    print('a * d:', e.shape)
+
+    # 不能广播会报错（示意）
+    # f = a + torch.tensor([1, 2])
+```
+
+## 小结
+- 张量创建时重点关注 `shape / dtype / device`，以及是否初始化内存（如 `empty` 不保证内容）。
+- 随机数可用 `torch.manual_seed` 做可复现；`randn` 来自标准正态分布，`randint` 的区间为 `[low, high)`。
+- 与 NumPy 互转时：`tensor.numpy()` / `torch.from_numpy` 会共享内存；隔离共享关系可用 `.copy()`。
+- 运算区分逐元素（Hadamard）与矩阵乘法（`@`/`mm`/`bmm`），in-place（带下划线）版本需要谨慎。
+- 形状变换常用 `reshape/view`、维度增减用 `unsqueeze/squeeze`、维度重排用 `transpose/permute`。
+- 广播决定了逐元素运算何时能自动对齐不同 shape。
+- `cat` 在已有维度拼接，`stack` 会新增维度插入。

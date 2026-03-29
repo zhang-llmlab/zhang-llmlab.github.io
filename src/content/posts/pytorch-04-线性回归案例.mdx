@@ -1,0 +1,208 @@
+---
+title: "PyTorch 线性回归实战：从零实现训练闭环"
+description: "以一元线性回归为例，系统讲清数据构造、mini-batch 训练、MSE 损失、梯度下降更新和可视化评估，帮助你建立可迁移的深度学习训练范式。"
+pubDate: 2026-03-28
+updatedDate: 2026-03-28
+
+# 知识博客扩展字段
+level: "beginner" # beginner | intermediate | advanced
+audience: ["学生", "初级工程师"]
+series: "深度学习基础"
+seriesOrder: 4
+keywords: ["PyTorch", "线性回归", "MSE", "梯度下降", "mini-batch", "Autograd"]
+toc: true
+
+# 站点聚合字段
+tags: ["PyTorch", "机器学习", "深度学习", "线性回归", "实战"]
+category: "深度学习"
+cover: "/covers/ml-bias-variance.jpg"
+draft: false
+---
+
+> 读前提示（AI/机器学习视角）
+> - **适合人群**：已经学过张量与自动微分，想把知识串成完整训练流程的学习者。
+> - **前置知识**：了解 `Tensor`、`requires_grad`、`backward()` 的基本用法。
+> - **读完收获**：你将掌握一个标准训练闭环：数据构造 -> 批量采样 -> 前向预测 -> 损失计算 -> 反向传播 -> 参数更新 -> 效果评估。
+
+# 1 问题定义与机器学习视角
+线性回归本质上是在拟合关系：
+`y = w * x + b`  
+其中 `w` 是斜率、`b` 是偏置。训练目标是找到一组参数，让预测值 `y_pred` 与真实值 `y_true` 的误差尽可能小。
+
+在深度学习里，这就是最小化损失函数的过程。虽然模型很简单，但训练机制与大模型训练是一致的。
+
+# 2 构造可复现实验数据
+我们使用 `sklearn.make_regression` 生成带噪声的一元回归数据，方便观察“拟合直线”是否逼近真实关系。
+
+```python
+import torch
+from sklearn.datasets import make_regression
+
+
+def create_regression_dataset(
+    n_samples: int = 100,
+    noise: float = 10.0,
+    bias: float = 14.5,
+    random_state: int = 0
+):
+    x_np, y_np, true_coef = make_regression(
+        n_samples=n_samples,
+        n_features=1,
+        noise=noise,
+        coef=True,
+        bias=bias,
+        random_state=random_state
+    )
+
+    # 统一使用 float64，便于和理论值对比（项目里也可用 float32）
+    x = torch.tensor(x_np, dtype=torch.float64)          # [N, 1]
+    y = torch.tensor(y_np, dtype=torch.float64).view(-1, 1)  # [N, 1]
+    return x, y, float(true_coef), bias
+```
+
+# 3 从零实现 mini-batch 数据加载
+在工程训练中，我们通常不会每次把全量数据送进模型，而是按 `batch_size` 分批训练，这样：
+- 内存占用更可控；
+- 梯度估计有随机性，有助于优化；
+- 更接近深度学习主流训练范式。
+
+```python
+def iter_minibatches(x: torch.Tensor, y: torch.Tensor, batch_size: int = 16, shuffle: bool = True):
+    n = x.size(0)
+    indices = torch.randperm(n) if shuffle else torch.arange(n)
+
+    for start in range(0, n, batch_size):
+        batch_idx = indices[start:start + batch_size]
+        yield x[batch_idx], y[batch_idx]
+```
+
+# 4 模型、损失与优化更新
+线性模型、均方误差（MSE）、随机梯度下降（SGD）是这个案例的核心三件套。
+
+```python
+def linear_regression(x: torch.Tensor, w: torch.Tensor, b: torch.Tensor):
+    return x @ w + b
+
+
+def mse_loss(y_pred: torch.Tensor, y_true: torch.Tensor):
+    # 返回标量，便于直接 backward
+    return ((y_pred - y_true) ** 2).mean()
+
+
+def sgd_step(params, lr: float):
+    # 参数更新阶段不需要构建计算图
+    with torch.no_grad():
+        for p in params:
+            p -= lr * p.grad
+```
+
+# 5 训练闭环（可直接运行）
+```python
+import matplotlib.pyplot as plt
+
+
+def train_linear_regression(
+    epochs: int = 120,
+    batch_size: int = 16,
+    lr: float = 1e-2
+):
+    # 1) 数据
+    x, y, true_w, true_b = create_regression_dataset()
+
+    # 2) 参数初始化（叶子节点）
+    w = torch.tensor([[0.1]], requires_grad=True, dtype=torch.float64)  # [1, 1]
+    b = torch.tensor([[0.0]], requires_grad=True, dtype=torch.float64)  # [1, 1]
+
+    # 3) 记录训练过程
+    epoch_losses = []
+
+    # 4) 训练
+    for epoch in range(epochs):
+        running_loss = 0.0
+        seen = 0
+
+        for batch_x, batch_y in iter_minibatches(x, y, batch_size=batch_size, shuffle=True):
+            # 前向
+            y_pred = linear_regression(batch_x, w, b)
+            loss = mse_loss(y_pred, batch_y)
+
+            # 反向前先清零（PyTorch 梯度会累积）
+            if w.grad is not None:
+                w.grad.zero_()
+            if b.grad is not None:
+                b.grad.zero_()
+
+            # 反向
+            loss.backward()
+
+            # 参数更新
+            sgd_step([w, b], lr=lr)
+
+            running_loss += loss.item() * batch_x.size(0)
+            seen += batch_x.size(0)
+
+        epoch_loss = running_loss / seen
+        epoch_losses.append(epoch_loss)
+
+        if (epoch + 1) % 10 == 0 or epoch == 0:
+            print(f"epoch={epoch+1:03d}, loss={epoch_loss:.6f}, w={w.item():.4f}, b={b.item():.4f}")
+
+    return x, y, w.detach(), b.detach(), true_w, true_b, epoch_losses
+
+
+def plot_training_results(x, y, w, b, true_w, true_b, epoch_losses):
+    plt.rcParams["font.sans-serif"] = ["SimHei"]
+    plt.rcParams["axes.unicode_minus"] = False
+
+    # 1) 散点 + 拟合线
+    plt.figure(figsize=(7, 5))
+    plt.scatter(x.numpy(), y.numpy(), s=18, alpha=0.75, label="样本")
+
+    x_line = torch.linspace(x.min(), x.max(), 200, dtype=torch.float64).view(-1, 1)
+    y_pred_line = x_line @ w + b
+    y_true_line = true_w * x_line + true_b
+
+    plt.plot(x_line.numpy(), y_pred_line.numpy(), label="模型拟合", linewidth=2.2)
+    plt.plot(x_line.numpy(), y_true_line.numpy(), "--", label="真实关系", linewidth=1.8)
+    plt.grid(alpha=0.25)
+    plt.legend()
+    plt.title("线性回归拟合结果")
+    plt.show()
+
+    # 2) 损失曲线
+    plt.figure(figsize=(7, 4))
+    plt.plot(range(1, len(epoch_losses) + 1), epoch_losses, color="#b45309", linewidth=2)
+    plt.grid(alpha=0.25)
+    plt.xlabel("Epoch")
+    plt.ylabel("MSE Loss")
+    plt.title("训练损失下降曲线")
+    plt.show()
+
+
+if __name__ == "__main__":
+    x, y, w, b, true_w, true_b, losses = train_linear_regression()
+    plot_training_results(x, y, w, b, true_w, true_b, losses)
+```
+
+# 6 结果应该怎么看？
+训练完成后，你通常会看到：
+- `loss` 持续下降并逐渐趋稳；
+- 预测直线与真实关系线逐步接近；
+- 学到的 `w`、`b` 接近数据生成时的参数（受噪声影响不会完全一致）。
+
+这代表模型已经通过梯度下降学习到数据中的线性规律。
+
+# 7 工程实践中的常见坑
+- **梯度未清零**：会导致梯度累积，参数更新异常；每个 batch 都要 `grad.zero_()`。
+- **维度不一致**：建议将 `y` 明确为 `[N, 1]`，与预测输出保持一致。
+- **使用 `.data` 更新参数**：不推荐；应在 `torch.no_grad()` 下更新。
+- **数据打乱逻辑写错**：如果只打乱索引但切片仍按顺序取，等于没有真正随机采样。
+
+# 8 小结
+- 线性回归案例虽然简单，但完整覆盖了深度学习训练闭环的关键步骤。
+- 你可以把这套流程直接迁移到更复杂模型（如多层感知机、CNN、Transformer）：
+  - 只替换模型前向；
+  - 保留训练循环框架；
+  - 继续使用 Autograd + 优化器思想。
+
+下一步建议：在本案例基础上加入训练/验证集划分与 `R² / MAE / RMSE` 指标，形成更完整的机器学习实验范式。

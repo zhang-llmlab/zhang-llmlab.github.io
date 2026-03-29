@@ -15,6 +15,18 @@
   margin-bottom: 0;
 }
 
+.prose h1 {
+  margin: 2.45rem 0 1rem;
+  padding-bottom: 0.55rem;
+  font-size: 1.55rem;
+  font-weight: 750;
+  letter-spacing: -0.035em;
+  line-height: 1.25;
+  color: var(--text);
+  border-bottom: 1px solid var(--line-strong);
+  scroll-margin-top: 5.85rem;
+}
+
 .prose h2 {
   margin: 2.25rem 0 0.85rem;
   padding-bottom: 0.45rem;
@@ -24,6 +36,7 @@
   line-height: 1.35;
   color: var(--text);
   border-bottom: 1px solid var(--line);
+  scroll-margin-top: 5.85rem;
 }
 
 .prose h3 {
@@ -33,6 +46,7 @@
   letter-spacing: -0.02em;
   line-height: 1.4;
   color: var(--text-soft);
+  scroll-margin-top: 5.85rem;
 }
 
 .prose h4 {
@@ -40,6 +54,11 @@
   font-size: 1.02rem;
   font-weight: 600;
   color: var(--text-soft);
+  scroll-margin-top: 5.85rem;
+}
+
+.prose h5 {
+  scroll-margin-top: 5.85rem;
 }
 
 .prose p {
@@ -135,7 +154,7 @@
   border-radius: 6px;
   background: var(--code-inline-bg);
   border: 1px solid var(--code-inline-border);
-  color: #f0ead8;
+  color: var(--code-inline-fg);
   white-space: break-spaces;
 }
 

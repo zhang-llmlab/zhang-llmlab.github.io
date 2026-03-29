@@ -1,0 +1,129 @@
+---
+import type { MarkdownHeading } from "astro";
+
+interface Props {
+  headings: MarkdownHeading[];
+  variant?: "sidebar" | "inline";
+}
+
+const { headings, variant = "sidebar" } = Astro.props;
+const items = headings.filter((h) => h.depth >= 1 && h.depth <= 5 && h.slug);
+const minDepth = items.reduce((acc, h) => Math.min(acc, h.depth), 6);
+---
+
+{
+  items.length > 0 && (
+    <nav
+      class:list={["article-toc", variant === "inline" ? "article-toc--inline" : "article-toc--sidebar"]}
+      aria-label="文章目录"
+    >
+    <p class="article-toc__title">目录</p>
+    <ul class="article-toc__list">
+      {items.map((h) => (
+        <li
+          class:list={["article-toc__item", `article-toc__item--d${h.depth}`]}
+          style={`--toc-depth: ${Math.max(0, h.depth - minDepth)}`}
+        >
+          <a class="article-toc__link" href={`#${h.slug}`}>
+            {h.text}
+          </a>
+        </li>
+      ))}
+    </ul>
+  </nav>
+  )
+}
+
+<style>
+  .article-toc {
+    --article-toc-pad: 0.65rem 0;
+    max-width: 100%;
+  }
+
+  .article-toc__title {
+    margin: 0 0 0.5rem;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  .article-toc__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+  }
+
+  .article-toc__link {
+    display: block;
+    padding: 0.22rem 0;
+    font-size: 0.84rem;
+    line-height: 1.4;
+    color: var(--text-soft);
+    text-decoration: none;
+    border-radius: 4px;
+    transition: color 0.15s ease;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .article-toc__link:hover {
+    color: var(--brand);
+  }
+
+  .article-toc__item {
+    padding-left: calc(var(--toc-depth, 0) * 0.65rem);
+    border-left: 2px solid transparent;
+    margin-left: -2px;
+  }
+
+  .article-toc__item--d2 {
+    border-left-color: rgba(201, 169, 98, 0.35);
+  }
+
+  .article-toc__item--d1 {
+    border-left-color: rgba(143, 191, 207, 0.32);
+  }
+
+  .article-toc--sidebar {
+    padding: 0.95rem 1rem;
+    border-radius: var(--radius);
+    border: 1px solid var(--line);
+    background: var(--bg-soft);
+  }
+
+  .article-toc--sidebar .article-toc__list {
+    max-height: none;
+    overflow: visible;
+    padding-right: 0;
+  }
+
+  .article-toc--inline {
+    margin: 0 0 1.25rem;
+    padding: 1rem 1.05rem;
+    border-radius: var(--radius);
+    border: 1px solid var(--line);
+    background: var(--bg-soft);
+  }
+
+  .article-toc--inline .article-toc__title {
+    margin-bottom: 0.45rem;
+  }
+
+  .article-toc--inline .article-toc__list {
+    max-height: min(40vh, 16rem);
+    overflow: auto;
+  }
+
+  @media (min-width: 1080px) {
+    .article-toc--sidebar {
+      position: sticky;
+      top: 6rem;
+      align-self: start;
+    }
+  }
+</style>

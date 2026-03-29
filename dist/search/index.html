@@ -1,48 +1,314 @@
 <!DOCTYPE html><html lang="zh-CN"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width"><title>搜索 | zhang-llmlab</title><meta name="description" content="记录技术笔记，展示作品集与项目复盘。"><meta property="og:title" content="搜索 | zhang-llmlab"><meta property="og:description" content="记录技术笔记，展示作品集与项目复盘。"><meta property="og:type" content="website"><meta property="og:site_name" content="zhang-llmlab | 个人网站"><meta property="og:url" content="https://zhang-llmlab.github.io/search/"><meta name="twitter:card" content="summary_large_image"><link rel="icon" type="image/svg+xml" href="/favicon.svg"><link rel="alternate" type="application/rss+xml" title="RSS" href="/rss.xml"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:ital,wght@0,400;0,500;1,400&family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet"><script>
       (function () {
-        try {
-          var k = "theme";
-          var s = localStorage.getItem(k);
-          var prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-          var t = s || (prefersDark ? "dark" : "light");
-          document.documentElement.setAttribute("data-theme", t);
-        } catch (e) {}
-      })();
-    </script><meta name="astro-view-transitions-enabled" content="true"><meta name="astro-view-transitions-fallback" content="animate"><script type="module" src="/_astro/ClientRouter.astro_astro_type_script_index_0_lang.CDGfc0hd.js"></script><link rel="stylesheet" href="/_astro/_slug_.CyEduv2F.css">
-<style>.wrap[data-astro-cid-ipsxrsrh]{padding:1.25rem 1.2rem 1.5rem;border-radius:var(--radius-lg)}.hint[data-astro-cid-ipsxrsrh]{margin:.35rem 0 1.15rem;font-size:.92rem;line-height:1.55;max-width:48ch}
-</style></head> <body> <div class="container layout-page"> <nav class="nav card" data-astro-cid-dmqpwcec>  <a class="brand" href="/" data-astro-cid-dmqpwcec>zhang-llmlab</a> <div class="items" data-astro-cid-dmqpwcec> <a class="nav-link" href="/" data-astro-cid-dmqpwcec> 首页 </a><a class="nav-link" href="/posts" data-astro-cid-dmqpwcec> 文章 </a><a class="nav-link" href="/series" data-astro-cid-dmqpwcec> 专题 </a><a class="nav-link" href="/projects" data-astro-cid-dmqpwcec> 作品集 </a><a class="nav-link active" href="/search" aria-current="page" data-astro-cid-dmqpwcec> 搜索 </a> <button type="button" class="theme-toggle" data-theme-toggle aria-label="切换浅色或深色主题" title="切换主题" data-astro-cid-x3pjskd3> <span class="theme-toggle__icon theme-toggle__icon--sun" aria-hidden="true" data-astro-cid-x3pjskd3> <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" data-astro-cid-x3pjskd3> <circle cx="12" cy="12" r="4" data-astro-cid-x3pjskd3></circle> <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" data-astro-cid-x3pjskd3></path> </svg> </span> <span class="theme-toggle__icon theme-toggle__icon--moon" aria-hidden="true" data-astro-cid-x3pjskd3> <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" data-astro-cid-x3pjskd3> <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" data-astro-cid-x3pjskd3></path> </svg> </span> </button> <script>
-  document.addEventListener(
-    "click",
-    function (e) {
-      var t = e.target && e.target.closest && e.target.closest("[data-theme-toggle]");
-      if (!t) return;
-      var cur = document.documentElement.getAttribute("data-theme") || "dark";
-      var next = cur === "dark" ? "light" : "dark";
-      document.documentElement.setAttribute("data-theme", next);
-      try {
-        localStorage.setItem("theme", next);
-      } catch (err) {}
-    },
-    true
-  );
-</script>  </div>  </nav>  <div class="layout-with-sidebar"> <div class="layout-main">  <section class="card wrap" data-astro-cid-ipsxrsrh> <h1 class="page-title" data-astro-cid-ipsxrsrh>全文搜索</h1> <p class="muted hint" data-astro-cid-ipsxrsrh>由 Pagefind 在构建时建立索引，支持离线静态全文检索。</p> <div id="search" data-astro-cid-ipsxrsrh></div> </section>  </div> <aside class="sidebar" aria-label="站点侧栏" data-astro-cid-ssfzsv2f> <section class="sidebar-card sidebar-profile" data-astro-cid-ssfzsv2f> <div class="sidebar-avatar-wrap" data-astro-cid-ssfzsv2f> <img class="sidebar-avatar" src="/images/avatar.svg" width="280" height="280" alt="" loading="lazy" data-astro-cid-ssfzsv2f> </div> <div class="sidebar-social" data-astro-cid-ssfzsv2f>  <a class="sidebar-social-link" href="https://github.com/zhang-llmlab" target="_blank" rel="noopener noreferrer" aria-label="GitHub" title="GitHub" data-astro-cid-ssfzsv2f> <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" data-astro-cid-ssfzsv2f> <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" data-astro-cid-ssfzsv2f></path> </svg> </a>  </div> <h2 class="sidebar-name" data-astro-cid-ssfzsv2f>zhang-llmlab</h2> <p class="sidebar-bio" data-astro-cid-ssfzsv2f>记录技术笔记，展示作品集与项目复盘。</p> </section> <section class="sidebar-card sidebar-categories" data-astro-cid-ssfzsv2f> <h3 class="sidebar-heading" data-astro-cid-ssfzsv2f> <svg class="sidebar-heading-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" data-astro-cid-ssfzsv2f> <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" data-astro-cid-ssfzsv2f></path> </svg>
-文章分类
-</h3> <ul class="sidebar-list" data-astro-cid-ssfzsv2f> <li data-astro-cid-ssfzsv2f> <a class="sidebar-cat-link" href="/categories/AI%2FNLP" data-astro-cid-ssfzsv2f> <span class="sidebar-cat-label" data-astro-cid-ssfzsv2f>AI/NLP</span> <span class="sidebar-cat-count" data-astro-cid-ssfzsv2f>4</span> </a> </li><li data-astro-cid-ssfzsv2f> <a class="sidebar-cat-link" href="/categories/AI%2FAgent" data-astro-cid-ssfzsv2f> <span class="sidebar-cat-label" data-astro-cid-ssfzsv2f>AI/Agent</span> <span class="sidebar-cat-count" data-astro-cid-ssfzsv2f>3</span> </a> </li><li data-astro-cid-ssfzsv2f> <a class="sidebar-cat-link" href="/categories/%E5%BB%BA%E7%AB%99" data-astro-cid-ssfzsv2f> <span class="sidebar-cat-label" data-astro-cid-ssfzsv2f>建站</span> <span class="sidebar-cat-count" data-astro-cid-ssfzsv2f>1</span> </a> </li><li data-astro-cid-ssfzsv2f> <a class="sidebar-cat-link" href="/categories/%E5%89%8D%E7%AB%AF%E5%B7%A5%E7%A8%8B" data-astro-cid-ssfzsv2f> <span class="sidebar-cat-label" data-astro-cid-ssfzsv2f>前端工程</span> <span class="sidebar-cat-count" data-astro-cid-ssfzsv2f>1</span> </a> </li><li data-astro-cid-ssfzsv2f> <a class="sidebar-cat-link" href="/categories/AI%2F%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0" data-astro-cid-ssfzsv2f> <span class="sidebar-cat-label" data-astro-cid-ssfzsv2f>AI/机器学习</span> <span class="sidebar-cat-count" data-astro-cid-ssfzsv2f>1</span> </a> </li> </ul> </section> <section class="sidebar-card sidebar-tags" data-astro-cid-ssfzsv2f> <h3 class="sidebar-heading" data-astro-cid-ssfzsv2f> <svg class="sidebar-heading-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" data-astro-cid-ssfzsv2f> <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" data-astro-cid-ssfzsv2f></path> <line x1="7" y1="7" x2="7.01" y2="7" data-astro-cid-ssfzsv2f></line> </svg>
-热门标签
-</h3> <div class="sidebar-tag-cloud" data-astro-cid-ssfzsv2f> <a class="sidebar-tag sidebar-tag--0" href="/tags/NLP" data-astro-cid-ssfzsv2f> NLP <span class="sidebar-tag-n" data-astro-cid-ssfzsv2f>4</span> </a><a class="sidebar-tag sidebar-tag--1" href="/tags/AI%20Agent" data-astro-cid-ssfzsv2f> AI Agent <span class="sidebar-tag-n" data-astro-cid-ssfzsv2f>3</span> </a><a class="sidebar-tag sidebar-tag--2" href="/tags/Astro" data-astro-cid-ssfzsv2f> Astro <span class="sidebar-tag-n" data-astro-cid-ssfzsv2f>2</span> </a><a class="sidebar-tag sidebar-tag--3" href="/tags/LLM" data-astro-cid-ssfzsv2f> LLM <span class="sidebar-tag-n" data-astro-cid-ssfzsv2f>2</span> </a><a class="sidebar-tag sidebar-tag--4" href="/tags/%E5%88%86%E8%AF%8D" data-astro-cid-ssfzsv2f> 分词 <span class="sidebar-tag-n" data-astro-cid-ssfzsv2f>1</span> </a><a class="sidebar-tag sidebar-tag--5" href="/tags/%E4%B8%AA%E4%BA%BA%E7%AB%99" data-astro-cid-ssfzsv2f> 个人站 <span class="sidebar-tag-n" data-astro-cid-ssfzsv2f>1</span> </a><a class="sidebar-tag sidebar-tag--0" href="/tags/%E5%B7%A5%E7%A8%8B%E5%AE%9E%E8%B7%B5" data-astro-cid-ssfzsv2f> 工程实践 <span class="sidebar-tag-n" data-astro-cid-ssfzsv2f>1</span> </a><a class="sidebar-tag sidebar-tag--1" href="/tags/%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0" data-astro-cid-ssfzsv2f> 机器学习 <span class="sidebar-tag-n" data-astro-cid-ssfzsv2f>1</span> </a><a class="sidebar-tag sidebar-tag--2" href="/tags/%E5%8F%AF%E9%9D%A0%E6%80%A7" data-astro-cid-ssfzsv2f> 可靠性 <span class="sidebar-tag-n" data-astro-cid-ssfzsv2f>1</span> </a><a class="sidebar-tag sidebar-tag--3" href="/tags/%E8%AF%84%E4%BC%B0%E4%BD%93%E7%B3%BB" data-astro-cid-ssfzsv2f> 评估体系 <span class="sidebar-tag-n" data-astro-cid-ssfzsv2f>1</span> </a><a class="sidebar-tag sidebar-tag--4" href="/tags/%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0" data-astro-cid-ssfzsv2f> 深度学习 <span class="sidebar-tag-n" data-astro-cid-ssfzsv2f>1</span> </a><a class="sidebar-tag sidebar-tag--5" href="/tags/%E5%AE%9E%E8%B7%B5" data-astro-cid-ssfzsv2f> 实践 <span class="sidebar-tag-n" data-astro-cid-ssfzsv2f>1</span> </a><a class="sidebar-tag sidebar-tag--0" href="/tags/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1" data-astro-cid-ssfzsv2f> 系统设计 <span class="sidebar-tag-n" data-astro-cid-ssfzsv2f>1</span> </a><a class="sidebar-tag sidebar-tag--1" href="/tags/%E5%90%91%E9%87%8F%E6%A3%80%E7%B4%A2" data-astro-cid-ssfzsv2f> 向量检索 <span class="sidebar-tag-n" data-astro-cid-ssfzsv2f>1</span> </a><a class="sidebar-tag sidebar-tag--2" href="/tags/%E4%BF%A1%E6%81%AF%E6%8A%BD%E5%8F%96" data-astro-cid-ssfzsv2f> 信息抽取 <span class="sidebar-tag-n" data-astro-cid-ssfzsv2f>1</span> </a><a class="sidebar-tag sidebar-tag--3" href="/tags/%E5%BA%8F%E5%88%97%E6%A0%87%E6%B3%A8" data-astro-cid-ssfzsv2f> 序列标注 <span class="sidebar-tag-n" data-astro-cid-ssfzsv2f>1</span> </a><a class="sidebar-tag sidebar-tag--4" href="/tags/%E7%9F%A5%E8%AF%86%E5%9B%BE%E8%B0%B1" data-astro-cid-ssfzsv2f> 知识图谱 <span class="sidebar-tag-n" data-astro-cid-ssfzsv2f>1</span> </a><a class="sidebar-tag sidebar-tag--5" href="/tags/%E8%87%AA%E5%8A%A8%E5%8C%96%E9%83%A8%E7%BD%B2" data-astro-cid-ssfzsv2f> 自动化部署 <span class="sidebar-tag-n" data-astro-cid-ssfzsv2f>1</span> </a> </div> </section> </aside>  </div> </div> </body></html> <link rel="stylesheet" href="/pagefind/pagefind-ui.css"> <script>
-  const initPagefind = () => {
-    if (!window.PagefindUI) return;
-    new window.PagefindUI({
-      element: "#search",
-      showImages: false,
-      translations: {
-        placeholder: "搜索文章和项目..."
-      }
-    });
-  };
+        function applyStoredTheme() {
+          try {
+            var k = "theme";
+            var s = localStorage.getItem(k);
+            var prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+            var t = s === "light" || s === "dark" ? s : prefersDark ? "dark" : "light";
+            document.documentElement.setAttribute("data-theme", t);
+          } catch (e) {}
+        }
 
-  const script = document.createElement("script");
-  script.src = "/pagefind/pagefind-ui.js";
-  script.onload = initPagefind;
-  document.body.appendChild(script);
-</script> 
+        applyStoredTheme();
+
+        document.addEventListener(
+          "click",
+          function (e) {
+            var el = e.target && e.target.closest && e.target.closest("[data-theme-toggle]");
+            if (!el || el.tagName !== "BUTTON") return;
+            e.preventDefault();
+            e.stopPropagation();
+            var cur = document.documentElement.getAttribute("data-theme") || "dark";
+            var next = cur === "dark" ? "light" : "dark";
+            document.documentElement.setAttribute("data-theme", next);
+            try {
+              localStorage.setItem("theme", next);
+            } catch (err) {}
+          },
+          true
+        );
+
+        document.addEventListener("astro:page-load", applyStoredTheme);
+      })();
+    </script><meta name="astro-view-transitions-enabled" content="true"><meta name="astro-view-transitions-fallback" content="animate"><script type="module" src="/_astro/ClientRouter.astro_astro_type_script_index_0_lang.CDGfc0hd.js"></script><link rel="stylesheet" href="/_astro/_slug_.ZUfFag3b.css">
+<style>.wrap[data-astro-cid-ipsxrsrh]{padding:1.25rem 1.2rem 1.5rem;border-radius:var(--radius-lg)}.hint[data-astro-cid-ipsxrsrh]{margin:.35rem 0 1.15rem;font-size:.92rem;line-height:1.55;max-width:62ch}.hint[data-astro-cid-ipsxrsrh] strong[data-astro-cid-ipsxrsrh]{font-weight:600}.search-code[data-astro-cid-ipsxrsrh]{font-size:.84em;padding:.12em .35em;border-radius:4px;background:var(--code-inline-bg);border:1px solid var(--code-inline-border);font-family:JetBrains Mono,ui-monospace,monospace}.search-root[data-astro-cid-ipsxrsrh]{min-height:3.75rem;--pagefind-ui-scale: .82;--pagefind-ui-primary: var(--brand);--pagefind-ui-text: var(--text);--pagefind-ui-background: var(--bg-soft);--pagefind-ui-border: var(--line-strong);--pagefind-ui-tag: var(--bg-elevated);--pagefind-ui-border-width: 1px;--pagefind-ui-border-radius: 10px;--pagefind-ui-font: "DM Sans", "Noto Sans SC", "PingFang SC", system-ui, sans-serif}.search-loading[data-astro-cid-ipsxrsrh]{margin:0;font-size:.94rem}.search-loading[data-astro-cid-ipsxrsrh].hidden,.search-mount[data-astro-cid-ipsxrsrh].hidden,.search-fallback[data-astro-cid-ipsxrsrh].hidden{display:none}.search-fallback-note[data-astro-cid-ipsxrsrh]{margin:0 0 .85rem;font-size:.88rem;line-height:1.55}.search-fallback-field[data-astro-cid-ipsxrsrh]{position:relative;display:flex;align-items:center}.search-fallback-icon[data-astro-cid-ipsxrsrh]{position:absolute;left:1rem;display:flex;color:var(--text-muted);pointer-events:none;z-index:1}.search-fallback-input[data-astro-cid-ipsxrsrh]{width:100%;box-sizing:border-box;padding:.85rem 1rem .85rem 2.65rem;font-size:1rem;font-weight:600;font-family:inherit;color:var(--text);background:var(--bg-soft);border:1px solid var(--line-strong);border-radius:10px;outline:none;transition:border-color .2s ease,box-shadow .2s ease}.search-fallback-input[data-astro-cid-ipsxrsrh]::placeholder{color:var(--text-muted);font-weight:400;opacity:.85}.search-fallback-input[data-astro-cid-ipsxrsrh]:focus{border-color:var(--brand);box-shadow:0 0 0 3px var(--focus)}.search-fallback-status[data-astro-cid-ipsxrsrh]{margin:.6rem 0 .35rem;font-size:.86rem;min-height:1.25em}.search-fallback-results[data-astro-cid-ipsxrsrh]{list-style:none;margin:.5rem 0 0;padding:0;display:flex;flex-direction:column;gap:.65rem}.search-fallback-link[data-astro-cid-ipsxrsrh]{display:flex;flex-direction:column;gap:.35rem;padding:.85rem 1rem;border-radius:var(--radius);text-decoration:none;color:inherit;transition:transform .15s ease,box-shadow .2s ease}.search-fallback-link[data-astro-cid-ipsxrsrh]:hover{transform:translateY(-1px);box-shadow:var(--shadow-sm)}.search-fallback-kind[data-astro-cid-ipsxrsrh]{font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--brand)}.search-fallback-title[data-astro-cid-ipsxrsrh]{font-size:1.02rem;font-weight:650;letter-spacing:-.02em}.search-fallback-desc[data-astro-cid-ipsxrsrh]{margin:0;font-size:.88rem;line-height:1.5}.sr-only[data-astro-cid-ipsxrsrh]{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}.search-root[data-astro-cid-ipsxrsrh] .pagefind-ui__search-input::placeholder{opacity:.45;color:var(--text-muted)}.search-root[data-astro-cid-ipsxrsrh] .pagefind-ui__message,.search-root[data-astro-cid-ipsxrsrh] .pagefind-ui__result-title,.search-root[data-astro-cid-ipsxrsrh] .pagefind-ui__result-excerpt{color:var(--text-soft)}.search-root[data-astro-cid-ipsxrsrh] .pagefind-ui__result-link{color:var(--text)}.search-root[data-astro-cid-ipsxrsrh] .pagefind-ui__result-link:hover{color:var(--brand)}
+</style></head> <body> <div class="theme-toggle-floating" data-astro-cid-x3pjskd3> <button type="button" class="theme-toggle" data-theme-toggle aria-label="切换浅色或深色主题" title="切换主题（全站生效）" data-astro-cid-x3pjskd3> <span class="theme-toggle__icon theme-toggle__icon--sun" aria-hidden="true" data-astro-cid-x3pjskd3> <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" data-astro-cid-x3pjskd3> <circle cx="12" cy="12" r="4" data-astro-cid-x3pjskd3></circle> <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" data-astro-cid-x3pjskd3></path> </svg> </span> <span class="theme-toggle__icon theme-toggle__icon--moon" aria-hidden="true" data-astro-cid-x3pjskd3> <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" data-astro-cid-x3pjskd3> <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" data-astro-cid-x3pjskd3></path> </svg> </span> </button> </div>  <div class="container layout-page"> <nav class="nav card" data-astro-cid-dmqpwcec>  <a class="brand" href="/" data-astro-cid-dmqpwcec>zhang-llmlab</a> <div class="items" data-astro-cid-dmqpwcec> <a class="nav-link" href="/" data-astro-cid-dmqpwcec> 首页 </a><a class="nav-link" href="/posts" data-astro-cid-dmqpwcec> 文章 </a><a class="nav-link" href="/series" data-astro-cid-dmqpwcec> 专题 </a><a class="nav-link" href="/projects" data-astro-cid-dmqpwcec> 作品集 </a><a class="nav-link active" href="/search" aria-current="page" data-astro-cid-dmqpwcec> 搜索 </a> </div>  </nav>  <div class="layout-with-sidebar"> <div class="layout-main">  <section class="search-page card wrap" data-astro-cid-ipsxrsrh> <h1 class="page-title" data-astro-cid-ipsxrsrh>全文搜索</h1> <p class="muted hint" data-astro-cid-ipsxrsrh>
+默认使用 <strong data-astro-cid-ipsxrsrh>Pagefind</strong> 全文索引（部署前请执行 <code class="search-code" data-astro-cid-ipsxrsrh>npm run build</code>）。若当前环境没有索引（例如
+<code class="search-code" data-astro-cid-ipsxrsrh>astro dev</code>），将自动使用<strong data-astro-cid-ipsxrsrh>标题与摘要</strong>快速搜索。
+</p> <div id="search-root" class="search-root" aria-live="polite" data-astro-cid-ipsxrsrh> <p class="search-loading muted" id="search-loading" data-astro-cid-ipsxrsrh>正在加载搜索…</p> <div id="search" class="search-mount hidden" hidden data-astro-cid-ipsxrsrh></div> <div id="search-fallback" class="search-fallback hidden" hidden data-astro-cid-ipsxrsrh> <p class="muted search-fallback-note" id="search-fallback-note" data-astro-cid-ipsxrsrh></p> <label class="sr-only" for="search-fallback-input" data-astro-cid-ipsxrsrh>搜索关键词</label> <div class="search-fallback-field" data-astro-cid-ipsxrsrh> <span class="search-fallback-icon" aria-hidden="true" data-astro-cid-ipsxrsrh> <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg" data-astro-cid-ipsxrsrh> <path d="M12.755 11.255h-.79l-.28-.27a6.471 6.471 0 10-.698.685l.267.283v.789L16.255 17.75 17.745 16.26l-4.99-5.005zm-5.997 0a4.472 4.472 0 114.47-4.471 4.47 4.47 0 01-4.47 4.47z" fill="currentColor" data-astro-cid-ipsxrsrh></path> </svg> </span> <input type="search" id="search-fallback-input" class="search-fallback-input" autocomplete="off" placeholder="搜索文章与项目（标题、摘要、关键词）…" data-astro-cid-ipsxrsrh> </div> <p class="search-fallback-status muted" id="search-fallback-status" aria-live="polite" data-astro-cid-ipsxrsrh></p> <ul class="search-fallback-results" id="search-fallback-results" data-astro-cid-ipsxrsrh></ul> </div> </div> </section>  </div> <aside class="sidebar" aria-label="站点侧栏" data-astro-cid-ssfzsv2f> <section class="sidebar-card sidebar-series" data-astro-cid-ssfzsv2f> <h3 class="sidebar-heading" data-astro-cid-ssfzsv2f> <svg class="sidebar-heading-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" data-astro-cid-ssfzsv2f> <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" data-astro-cid-ssfzsv2f></path> <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" data-astro-cid-ssfzsv2f></path> </svg>
+专题
+</h3> <ul class="sidebar-list" data-astro-cid-ssfzsv2f> <li data-astro-cid-ssfzsv2f> <a class="sidebar-cat-link" href="/series/%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E5%9F%BA%E7%A1%80" data-astro-cid-ssfzsv2f> <span class="sidebar-cat-label" data-astro-cid-ssfzsv2f>深度学习基础</span> <span class="sidebar-cat-count" data-astro-cid-ssfzsv2f>1</span> </a> </li> </ul> </section> <section class="sidebar-card sidebar-tags" data-astro-cid-ssfzsv2f> <h3 class="sidebar-heading" data-astro-cid-ssfzsv2f> <svg class="sidebar-heading-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" data-astro-cid-ssfzsv2f> <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" data-astro-cid-ssfzsv2f></path> <line x1="7" y1="7" x2="7.01" y2="7" data-astro-cid-ssfzsv2f></line> </svg>
+关键词
+</h3> <div class="sidebar-tag-cloud" data-astro-cid-ssfzsv2f> <a class="sidebar-tag sidebar-tag--0" href="/tags/%E5%BC%A0%E9%87%8F" data-astro-cid-ssfzsv2f> 张量 <span class="sidebar-tag-n" data-astro-cid-ssfzsv2f>1</span> </a><a class="sidebar-tag sidebar-tag--1" href="/tags/cat" data-astro-cid-ssfzsv2f> cat <span class="sidebar-tag-n" data-astro-cid-ssfzsv2f>1</span> </a><a class="sidebar-tag sidebar-tag--2" href="/tags/device" data-astro-cid-ssfzsv2f> device <span class="sidebar-tag-n" data-astro-cid-ssfzsv2f>1</span> </a><a class="sidebar-tag sidebar-tag--3" href="/tags/dtype" data-astro-cid-ssfzsv2f> dtype <span class="sidebar-tag-n" data-astro-cid-ssfzsv2f>1</span> </a><a class="sidebar-tag sidebar-tag--4" href="/tags/NumPy" data-astro-cid-ssfzsv2f> NumPy <span class="sidebar-tag-n" data-astro-cid-ssfzsv2f>1</span> </a><a class="sidebar-tag sidebar-tag--5" href="/tags/PyTorch" data-astro-cid-ssfzsv2f> PyTorch <span class="sidebar-tag-n" data-astro-cid-ssfzsv2f>1</span> </a><a class="sidebar-tag sidebar-tag--0" href="/tags/stack" data-astro-cid-ssfzsv2f> stack <span class="sidebar-tag-n" data-astro-cid-ssfzsv2f>1</span> </a> </div> </section> </aside>  </div> </div> </body></html> <link rel="stylesheet" href="/pagefind/pagefind-ui.css"> <script>(function(){const pagefindBundlePath = "/pagefind/";
+const pagefindJs = "/pagefind/pagefind-ui.js";
+const searchIndexUrl = "/search-index.json";
+
+  (function () {
+    function pathIsSearchPage() {
+      var p = window.location.pathname.replace(/\/$/, "") || "/";
+      return p === "/search" || p.endsWith("/search");
+    }
+
+    var uiInstance = null;
+    var itemsCache = null;
+    var fallbackInputHandler = null;
+    var fallbackDebouncer = null;
+
+    function setLoading(visible) {
+      var el = document.getElementById("search-loading");
+      if (el) {
+        el.classList.toggle("hidden", !visible);
+        if (!visible) el.setAttribute("hidden", "");
+        else el.removeAttribute("hidden");
+      }
+    }
+
+    function hideFallback() {
+      var fb = document.getElementById("search-fallback");
+      if (fb) {
+        fb.classList.add("hidden");
+        fb.setAttribute("hidden", "");
+      }
+      var input = document.getElementById("search-fallback-input");
+      if (input && fallbackInputHandler) {
+        input.removeEventListener("input", fallbackInputHandler);
+        fallbackInputHandler = null;
+      }
+      if (fallbackDebouncer) {
+        clearTimeout(fallbackDebouncer);
+        fallbackDebouncer = null;
+      }
+    }
+
+    function showFallbackPanel(note) {
+      hideFallback();
+      var fb = document.getElementById("search-fallback");
+      var noteEl = document.getElementById("search-fallback-note");
+      if (noteEl) noteEl.textContent = note;
+      if (fb) {
+        fb.classList.remove("hidden");
+        fb.removeAttribute("hidden");
+      }
+      var mount = document.getElementById("search");
+      if (mount) {
+        mount.classList.add("hidden");
+        mount.setAttribute("hidden", "");
+      }
+    }
+
+    function showMount() {
+      var mount = document.getElementById("search");
+      var load = document.getElementById("search-loading");
+      if (load) {
+        load.classList.add("hidden");
+        load.setAttribute("hidden", "");
+      }
+      if (mount) {
+        mount.removeAttribute("hidden");
+        mount.classList.remove("hidden");
+      }
+      hideFallback();
+    }
+
+    function destroyUi() {
+      if (uiInstance && typeof uiInstance.destroy === "function") {
+        try {
+          uiInstance.destroy();
+        } catch (e) {}
+      }
+      uiInstance = null;
+      var mount = document.getElementById("search");
+      if (mount) mount.innerHTML = "";
+      hideFallback();
+      itemsCache = null;
+    }
+
+    function renderFallbackResults(matches) {
+      var ul = document.getElementById("search-fallback-results");
+      var st = document.getElementById("search-fallback-status");
+      if (!ul) return;
+      ul.innerHTML = "";
+      if (st) st.textContent = matches.length ? "共 " + matches.length + " 条" : "";
+      matches.slice(0, 40).forEach(function (it) {
+        var li = document.createElement("li");
+        li.className = "search-fallback-item";
+        var a = document.createElement("a");
+        a.href = it.url;
+        a.className = "search-fallback-link card";
+        var span = document.createElement("span");
+        span.className = "search-fallback-kind";
+        span.textContent = it.kind === "post" ? "文章" : "项目";
+        var h = document.createElement("strong");
+        h.className = "search-fallback-title";
+        h.textContent = it.title;
+        var p = document.createElement("p");
+        p.className = "muted search-fallback-desc";
+        p.textContent = it.description || "（无摘要）";
+        a.appendChild(span);
+        a.appendChild(h);
+        a.appendChild(p);
+        li.appendChild(a);
+        ul.appendChild(li);
+      });
+      if (matches.length > 40 && st) {
+        st.textContent += "（仅显示前 40 条，可缩小关键词）";
+      }
+    }
+
+    function runFallbackFilter(q) {
+      var query = (q || "").trim().toLowerCase();
+      if (!itemsCache) return;
+      if (!query) {
+        renderFallbackResults([]);
+        var st = document.getElementById("search-fallback-status");
+        if (st) st.textContent = "";
+        return;
+      }
+      var needles = query.split(/\s+/).filter(Boolean);
+      var matches = itemsCache.filter(function (it) {
+        return needles.every(function (n) {
+          return it.haystack.indexOf(n) !== -1;
+        });
+      });
+      renderFallbackResults(matches);
+      var st2 = document.getElementById("search-fallback-status");
+      if (st2 && matches.length === 0) st2.textContent = "未找到匹配项";
+    }
+
+    function bindFallbackInput() {
+      var input = document.getElementById("search-fallback-input");
+      if (!input) return;
+      if (fallbackInputHandler) input.removeEventListener("input", fallbackInputHandler);
+      fallbackInputHandler = function () {
+        if (fallbackDebouncer) clearTimeout(fallbackDebouncer);
+        var v = input.value;
+        fallbackDebouncer = setTimeout(function () {
+          runFallbackFilter(v);
+        }, 200);
+      };
+      input.addEventListener("input", fallbackInputHandler);
+      input.focus();
+    }
+
+    function startFallbackSearch(note) {
+      setLoading(false);
+      showFallbackPanel(
+        note ||
+          "未检测到 Pagefind 脚本或索引。以下为根据标题、摘要与关键词的本地快速搜索（开发模式同样可用）。"
+      );
+      fetch(searchIndexUrl)
+        .then(function (r) {
+          if (!r.ok) throw new Error("bad");
+          return r.json();
+        })
+        .then(function (data) {
+          itemsCache = data.items || [];
+          bindFallbackInput();
+          runFallbackFilter(document.getElementById("search-fallback-input").value);
+        })
+        .catch(function () {
+          var st = document.getElementById("search-fallback-status");
+          if (st) st.textContent = "无法加载 search-index.json，请稍后重试。";
+        });
+    }
+
+    function ensurePagefindScript(cb, onFail) {
+      if (window.PagefindUI) {
+        cb();
+        return;
+      }
+      var existing = document.querySelector('script[data-pagefind-ui-script="1"]');
+      if (existing) {
+        if (existing.getAttribute("data-loaded") === "1") {
+          cb();
+        } else {
+          existing.addEventListener("load", function () {
+            existing.setAttribute("data-loaded", "1");
+            cb();
+          });
+          existing.addEventListener("error", function () {
+            onFail();
+          });
+        }
+        return;
+      }
+      var script = document.createElement("script");
+      script.src = pagefindJs;
+      script.async = true;
+      script.dataset.pagefindUiScript = "1";
+      script.onload = function () {
+        script.setAttribute("data-loaded", "1");
+        cb();
+      };
+      script.onerror = function () {
+        onFail();
+      };
+      document.head.appendChild(script);
+    }
+
+    function mountPagefind() {
+      if (!pathIsSearchPage()) {
+        destroyUi();
+        return;
+      }
+
+      var root = document.getElementById("search");
+      if (!root) return;
+
+      destroyUi();
+
+      var loadEl = document.getElementById("search-loading");
+      if (loadEl) {
+        loadEl.classList.remove("hidden");
+        loadEl.removeAttribute("hidden");
+      }
+
+      var mount = document.getElementById("search");
+      if (mount) {
+        mount.classList.add("hidden");
+        mount.setAttribute("hidden", "");
+        mount.innerHTML = "";
+      }
+
+      ensurePagefindScript(
+        function () {
+          if (!pathIsSearchPage()) return;
+          if (!window.PagefindUI) {
+            startFallbackSearch();
+            return;
+          }
+          try {
+            uiInstance = new window.PagefindUI({
+              element: "#search",
+              bundlePath: pagefindBundlePath,
+              showImages: false,
+              resetStyles: false,
+              autofocus: true,
+              translations: {
+                placeholder: "搜索文章和项目…",
+                zero_results: "未找到与 “[SEARCH_TERM]” 相关的页面",
+                many_results: "找到 [COUNT] 条与 “[SEARCH_TERM]” 相关的结果",
+                one_result: "找到 1 条与 “[SEARCH_TERM]” 相关的结果",
+                searching: "正在搜索 “[SEARCH_TERM]”…",
+                clear_search: "清除",
+                load_more: "加载更多结果"
+              }
+            });
+            showMount();
+            setLoading(false);
+          } catch (e) {
+            console.error(e);
+            startFallbackSearch("Pagefind 初始化失败，已切换为标题与摘要搜索。");
+          }
+        },
+        function () {
+          startFallbackSearch();
+        }
+      );
+    }
+
+    mountPagefind();
+    document.addEventListener("astro:page-load", mountPagefind);
+  })();
+})();</script> 

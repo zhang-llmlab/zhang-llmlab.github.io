@@ -2,57 +2,87 @@
 // 将正文里 ```mermaid 代码块（Shiki 渲染后的 pre）在浏览器中交给 Mermaid 绘制成 SVG
 ---
 <script>
-  async function renderMermaidDiagrams() {
-    const root = document.querySelector(".content.prose");
-    if (!root) return;
+  let mermaidLibPromise;
+  let mermaidInitialized = false;
 
-    const mermaidPres = [];
-    root.querySelectorAll("pre").forEach((pre) => {
-      const fromAttr = pre.getAttribute("data-language");
-      const code = pre.querySelector("code");
-      const cls = code?.getAttribute("class") || "";
-      const fromClass = cls.match(/language-(\w+)/)?.[1];
-      const lang = fromAttr || fromClass;
-      if (lang === "mermaid") mermaidPres.push(pre);
-    });
-
-    if (!mermaidPres.length) return;
-
-    const mermaid = (await import("mermaid")).default;
-    mermaid.initialize({
-      startOnLoad: false,
-      theme: "dark",
-      securityLevel: "loose",
-      fontFamily: "inherit",
-      themeVariables: {
-        primaryColor: "#2a2620",
-        primaryTextColor: "#f2f0ec",
-        primaryBorderColor: "#c9a962",
-        lineColor: "#a8a5a0",
-        secondaryColor: "#1c1b20",
-        tertiaryColor: "#121318"
-      }
-    });
-
-    for (const pre of mermaidPres) {
-      const code = pre.querySelector("code");
-      const text = (code?.textContent ?? "").trim();
-      if (!text) continue;
-      const figure = document.createElement("figure");
-      figure.className = "mermaid-wrap";
-      const inner = document.createElement("div");
-      inner.className = "mermaid";
-      inner.textContent = text;
-      figure.appendChild(inner);
-      pre.replaceWith(figure);
+  async function getMermaid() {
+    if (!mermaidLibPromise) {
+      mermaidLibPromise = import("mermaid").then((m) => m.default);
     }
+    const mermaid = await mermaidLibPromise;
+    if (!mermaidInitialized) {
+      mermaid.initialize({
+        startOnLoad: false,
+        theme: "dark",
+        securityLevel: "loose",
+        fontFamily: "inherit",
+        themeVariables: {
+          primaryColor: "#2a2620",
+          primaryTextColor: "#f2f0ec",
+          primaryBorderColor: "#c9a962",
+          lineColor: "#a8a5a0",
+          secondaryColor: "#1c1b20",
+          tertiaryColor: "#121318"
+        }
+      });
+      mermaidInitialized = true;
+    }
+    return mermaid;
+  }
 
-    await mermaid.run({ querySelector: ".content.prose .mermaid" });
+  function isMermaidPre(pre) {
+    const fromAttr = pre.getAttribute("data-language");
+    const code = pre.querySelector("code");
+    const cls = code?.getAttribute("class") || "";
+    const fromClass = cls.match(/language-([a-zA-Z0-9_-]+)/)?.[1];
+    const lang = (fromAttr || fromClass || "").toLowerCase();
+    return lang === "mermaid";
+  }
+
+  async function renderMermaidDiagrams() {
+    try {
+      const roots = document.querySelectorAll(".content.prose");
+      if (!roots.length) return;
+
+      const mermaidPres = [];
+      roots.forEach((root) => {
+        root.querySelectorAll("pre").forEach((pre) => {
+          if (!pre.hasAttribute("data-mermaid-processed") && isMermaidPre(pre)) {
+            mermaidPres.push(pre);
+          }
+        });
+      });
+      if (!mermaidPres.length) return;
+
+      for (const pre of mermaidPres) {
+        const code = pre.querySelector("code");
+        const text = (code?.textContent ?? "").trim();
+        if (!text) continue;
+        const figure = document.createElement("figure");
+        figure.className = "mermaid-wrap";
+        const inner = document.createElement("div");
+        inner.className = "mermaid";
+        inner.textContent = text;
+        figure.appendChild(inner);
+        pre.setAttribute("data-mermaid-processed", "true");
+        pre.replaceWith(figure);
+      }
+
+      const mermaid = await getMermaid();
+      await mermaid.run({ querySelector: ".content.prose .mermaid" });
+    } catch (err) {
+      console.error("[MermaidRuntime] 渲染 Mermaid 失败：", err);
+    }
+  }
+
+  function bootMermaidRender() {
+    renderMermaidDiagrams();
   }
 
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", renderMermaidDiagrams);
+    document.addEventListener("DOMContentLoaded", bootMermaidRender, { once: true });
   } else {
-    renderMermaidDiagrams();
+    bootMermaidRender();
   }
+  document.addEventListener("astro:page-load", bootMermaidRender);
 </script>
