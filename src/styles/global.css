@@ -26,7 +26,7 @@
   --code-inline-fg: #f0ead8;
   --focus: rgba(201, 169, 98, 0.5);
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
-  --content-max: 1200px;
+  --content-max: 1800px;
   --body-bg: radial-gradient(ellipse 820px 480px at 8% -8%, rgba(201, 169, 98, 0.09), transparent 58%),
     radial-gradient(ellipse 680px 420px at 92% 12%, rgba(143, 191, 207, 0.07), transparent 52%),
     radial-gradient(ellipse 520px 360px at 48% 100%, rgba(184, 115, 90, 0.05), transparent 48%),
@@ -130,7 +130,7 @@ button:focus-visible {
 }
 
 .container {
-  max-width: 1200px;
+  max-width: var(--content-max);
   margin: 0 auto;
   padding: 1.35rem 1.4rem 2.75rem;
 }
