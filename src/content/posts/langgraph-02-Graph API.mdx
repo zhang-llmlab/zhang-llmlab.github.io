@@ -60,7 +60,7 @@ draft: false
 
 **主入口类**：`StateGraph`，由你定义的 **状态类型**（通常为 `TypedDict` 或 Pydantic 模型）参数化。
 
-# 2 State：Schema、Reducer 与类型
+# 2 State：Schema
 
 ## 2.1 如何声明 State
 
@@ -104,8 +104,9 @@ graph TD
   - 承载 `messages`、`retrieved_docs`、`tool_calls`、迭代计数等 **中间与调试信息**；
   - 与 **reducer** 一起规定字段如何合并；
   - 构建 **`StateGraph`** 时的核心类型参数（常作为第一个位置参数或 `state_schema=`）。
+  - `node`输出的字典会自动解析，merge到OverallState
 
-### `input_schema`（入参契约）
+### `input_schema`
 
 - **含义**：调用方 **`invoke` / `stream`** 时 **允许传入** 的字段子集。
 - **作用**：
@@ -113,8 +114,7 @@ graph TD
   - **最小暴露**：外部只需传 `user_query`、`session_id` 等，无需了解内部全貌。
 - **默认**：未单独指定时，往往与全量 **state** 一致；显式指定后则 **仅允许声明的字段** 从外部注入。
 
-### `output_schema`（出参契约）
-
+### `output_schema`
 - **含义**：执行结束后 **返回给调用方** 的字段子集。
 - **作用**：
   - 从全量 state 中 **投影** 出对外可见部分，隐藏中间 Prompt、原始文档、调试日志等；
@@ -179,7 +179,7 @@ print(result)
 - **解耦演进**：内部字段可增删，在不影响 `input_schema` / `output_schema` 的前提下迭代。
 - **类型与校验**：减少「多传字段、漏传字段」类运行时问题。
 
-# 3 输入 / 输出分离：最小示例
+# 3 Input / Output分离：最小示例
 
 下图示意：**`OverallState`** 继承 **`InputState`** 与 **`OutputState`**，节点可仍按整体状态读写，而 **`invoke`** 入参、返回值受 Schema 约束。
 
@@ -223,7 +223,7 @@ if __name__ == "__main__":
 
 **要点**
 
-- `StateGraph(OverallState, input_schema=..., output_schema=...)` 明确 **对内状态** 与 **对外契约**。
+- `StateGraph(OverallState, input_schema=..., output_schema=...)` 明确 **对内状态** 与 **对外约束**。
 - 节点返回的字典会与 **reducer** 规则合并进全局 state；最终 **`invoke` 返回值** 受 **`output_schema`** 过滤。
 
 # 4 「私有」字段在节点间传递：概念与注意点
@@ -325,5 +325,9 @@ flowchart LR
 - **Graph API** 的本质：**`State` + `Nodes` + `Edges`**，再配合 **`compile` / `invoke`** 完成一次运行。
 - **`state_schema` / `input_schema` / `output_schema`** 实现 **对内全量状态** 与 **对外最小接口** 的分离，是生产化 Agent 的常用模式。
 - **「私有」数据** 在多数实现里仍体现为 **state 中的键**；设计时要明确 **谁在写、谁在读、何时清空**，避免误以为存在未文档化的隐式存储。
+* 在 LangGraph 中，节点函数返回的字典，会自动合并（merge）到全局 OverallState 中，规则是：
+> 1. 用返回字典里的键名，去匹配 OverallState 里的同名字段
+> 2. 用返回字典里的值，覆盖 / 更新全局状态中对应字段的值
+> 3. 只有在 OverallState 中已定义的字段，才会被保留；未定义的字段会被直接丢弃
 
 下一篇可继续深入：**`reducer` 自定义、`Annotated` 与消息列表追加、条件边与子图**，并与 **检查点 / 人机中断** 结合。
