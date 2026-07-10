@@ -1,0 +1,582 @@
+---
+title: "多 Agent 统一入口架构设计"
+description: "汽车技术中心当前正推进多个 Agent 项目："
+pubDate: 2026-07-10
+updatedDate: 2026-07-10
+tags: ["Agents 开发"]
+category: "Agents 开发"
+draft: false
+---
+# 多 Agent 统一入口架构设计
+
+## 一、背景与问题
+
+汽车技术中心当前正推进多个 Agent 项目：
+
+- 每位同事负责一个业务 Agent（诊断、售后、标定、供应链、知识问答……）
+- 技术栈统一为 **LangGraph / LangChain / DeepAgents**
+- 但每个人实现风格不同：图结构、节点划分、状态定义、工具封装各成一派
+
+**目标**：搭建一个统一对话入口，用户在同一个界面提问，系统自动路由到对应子 Agent。
+
+**约束**：
+
+1. 对每位同事已有代码的**侵入最小**
+2. 新增 Agent 的集成成本要低
+3. 各子 Agent 独立发版、独立故障、独立扩缩容
+4. 支持流式输出、多轮上下文、可观测
+
+---
+
+## 二、架构总览：Supervisor + 统一契约 + 注册中心
+
+```
+                  ┌────────────────────────────┐
+                  │      用户 / 前端对话入口     │
+                  └──────────────┬─────────────┘
+                                 │
+                     ┌───────────▼───────────┐
+                     │   Supervisor Agent    │  ← LangGraph 编排
+                     │  (路由 / 上下文 / 聚合) │
+                     └───┬───────┬───────┬───┘
+                         │       │       │       (统一契约调用)
+             ┌───────────┘       │       └──────────────┐
+             ▼                   ▼                      ▼
+      ┌────────────┐      ┌────────────┐         ┌────────────┐
+      │ 诊断 Agent  │      │ 售后 Agent  │  ...    │ 标定 Agent  │
+      │ (LangGraph)│      │ (DeepAgent) │         │ (LangChain) │
+      └────────────┘      └────────────┘         └────────────┘
+             │                   │                      │
+             └─────── 注册到 Agent Registry (Agent Card) ─┘
+```
+
+三个核心组件：
+
+| 组件                     | 职责                                             | 谁来实现                 |
+| ------------------------ | ------------------------------------------------ | ------------------------ |
+| **Supervisor**     | 意图识别、路由、多轮上下文、结果聚合、流式转发   | 平台组 / 架构团队        |
+| **Agent Registry** | Agent 元数据（能力、示例、地址、超时）注册与发现 | 平台组 + 各 Agent 负责人 |
+| **子 Agent**       | 按业务实现，遵守 I/O 契约即可                    | 各同事                   |
+
+---
+
+## 三、关键设计点
+
+### 3.1 统一 I/O 契约（最重要）
+
+无论子 Agent 内部是 LangGraph、LangChain 还是 DeepAgents，对外只暴露一个符合契约的调用接口。
+
+**请求**：
+
+```json
+{
+  "input": "用户原始问题",
+  "session_id": "会话唯一 ID，用于跨轮上下文",
+  "user_id": "用户 ID",
+  "context": {
+    "history": [...],
+    "metadata": { "car_model": "...", "vin": "..." }
+  },
+  "stream": true
+}
+```
+
+**响应**（非流式）：
+
+```json
+{
+  "output": "回答正文",
+  "citations": [...],
+  "tool_calls": [...],
+  "usage": { "input_tokens": 0, "output_tokens": 0 },
+  "trace_id": "..."
+}
+```
+
+**响应**（流式）：SSE / WebSocket，逐 token 或逐 chunk 推送，末尾一条 `done` 事件。
+
+契约层用 **Pydantic Schema** 固化，任何人 import 就能拿到类型约束，避免各写各的字段名。
+
+---
+
+### 3.2 子 Agent 的三种接入方式（按耦合度递增排序）
+
+同事可以按自己的实际情况选一种：
+
+#### 方式 A：远程服务（推荐，耦合最低）
+
+- 每个 Agent 独立部署为一个 HTTP 服务（FastAPI 包一层即可）
+- Supervisor 通过 HTTP / SSE 调用
+- **优点**：完全隔离依赖、独立发版、故障不扩散、可横向扩容
+- **缺点**：多一次网络调用、需要各自维护部署
+
+```python
+# 每个同事只需加这一层 wrapper
+from fastapi import FastAPI
+from my_agent import graph   # 你原来的 LangGraph 实例
+
+app = FastAPI()
+
+@app.post("/invoke")
+async def invoke(req: AgentRequest) -> AgentResponse:
+    result = await graph.ainvoke({"messages": [...], **req.context})
+    return AgentResponse(output=result["output"], ...)
+```
+
+#### 方式 B：MCP Server（跨语言、跨框架标准）
+
+- 把 Agent 包成 MCP Server，Supervisor 作为 MCP Client
+- **优点**：标准协议、天然支持工具/资源/提示三种能力、生态好
+- **缺点**：MCP 的 stateless 模型对多轮会话需要额外处理
+
+#### 方式 C：进程内 Runnable（monorepo、依赖统一时可用）
+
+- 直接把 Agent 暴露成 LangChain `Runnable`，Supervisor `import` 后当工具调用
+- **优点**：零网络开销、调试方便
+- **缺点**：依赖版本必须对齐、一个 Agent 挂全部挂、发布必须同步
+
+**建议默认走 A**，只有当团队规模小、依赖能锁死时才用 C。
+
+---
+
+### 3.3 Agent Registry（Agent Card）
+
+每个子 Agent 提交一份 YAML/JSON 元数据到注册中心，Supervisor 用它做 LLM 路由与运行时调用。
+
+Agent Card 本质是**声明式元数据文件** = "给 LLM 看的能力说明书" + "给运行时看的调用参数"。业界已有多个参考形态：Google A2A 的 Agent Card、MCP 的 Server Manifest、OpenAI GPT Store 的 GPT Manifest、LangChain Hub 的 Tool Description，思路一致。
+
+#### 3.3.1 完整字段（分三块看）
+
+```yaml
+# ============ 块 1：身份与运维（给平台/人看） ============
+name: diagnosis_agent            # 唯一 ID，Supervisor 内部用
+display_name: 车辆诊断助手         # 展示名，给用户看
+version: 1.2.0
+owner: zhangsan@corp             # 负责人，出问题找谁
+description: |
+  基于 DTC 故障码、TSB 技术公告和维修知识库，
+  给出车辆故障诊断和维修建议。
+tags: [诊断, 售后, 电子电气]
+
+# ============ 块 2：路由信息（给 LLM 看，最关键） ============
+capabilities:                    # LLM 用这个判断"该不该派给我"
+  - 解释 DTC/OBD 故障码含义
+  - 根据症状推理可能故障点
+  - 查询 TSB 技术服务公告
+  - 给出维修优先级与备件建议
+
+examples:                        # few-shot，路由准确率提升的关键
+  - "P0171 是什么故障？"
+  - "冷启动抖动可能是哪里的问题？"
+  - "有没有关于 EA888 烧机油的 TSB？"
+
+not_for:                         # 反向说明，同样重要
+  - 保养预约（→ aftersales_agent）
+  - 电池标定（→ calibration_agent）
+
+routing_keywords: [故障码, DTC, OBD, TSB, 抖动, 异响, 故障灯]
+
+# ============ 块 3：调用契约（给 Supervisor 运行时看） ============
+transport: http                  # http | mcp | inproc | grpc
+endpoint: http://diagnosis-agent.internal:8080/invoke
+stream_endpoint: http://diagnosis-agent.internal:8080/stream
+health: http://diagnosis-agent.internal:8080/health
+
+timeout_ms: 30000
+max_retries: 2
+stateful: true                   # 是否需要 session 粘性
+
+auth:
+  type: bearer
+  secret_ref: DIAG_AGENT_TOKEN   # 引用 secret 名，不写明文
+
+input_schema_ref: contracts/v1/AgentRequest
+output_schema_ref: contracts/v1/AgentResponse
+
+required_context:                # 声明依赖哪些全局上下文
+  - vin
+  - car_model
+```
+
+#### 3.3.2 字段字典（逐字段说明）
+
+每个字段给出：**含义 / 是否必填 / 谁在用 / 填写要点**。
+
+**块 1：身份与运维**（不喂给 LLM，避免污染路由 prompt、避免泄漏内部信息）
+
+| 字段            | 含义                          | 必填 | 消费方             | 填写要点                                                                 |
+| --------------- | ----------------------------- | ---- | ------------------ | ------------------------------------------------------------------------ |
+| `name`          | Agent 的**全局唯一 ID**        | ✅   | Supervisor 内部    | 小写英文 + 下划线，如 `diagnosis_agent`；一旦发布不要改，日志/路由全靠它 |
+| `display_name`  | **展示名**，给终端用户看        | ✅   | 前端 UI / 路由事件 | 中文短语，用户能看懂即可                                                 |
+| `version`       | Agent 版本号（**SemVer**）     | ✅   | 运维、灰度、审计   | `MAJOR.MINOR.PATCH`；接口不兼容改动必须升 MAJOR                          |
+| `owner`         | **责任人**邮箱或工号            | ✅   | 出问题找谁         | 可以是团队邮箱；避免个人离职后失联                                       |
+| `description`   | 一段自然语言的**总体描述**      | ✅   | 平台后台展示、审计 | 2-3 句话说清"是什么、依赖什么、给谁用"                                    |
+| `tags`          | **分类标签**，用于后台筛选/统计 | 可选 | 平台后台           | 从预定义词表里选，别自由发挥，否则分组乱                                 |
+
+**块 2：路由信息**（全量喂给 Router 的 system prompt，Card 质量直接决定路由质量）
+
+| 字段               | 含义                                   | 必填     | 消费方      | 填写要点                                                                                                                |
+| ------------------ | -------------------------------------- | -------- | ----------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `capabilities`     | **正向能力列表**：这个 Agent 能干什么    | ✅       | Router LLM  | 每条动词开头，一句话；控制在 3-6 条；**不要写实现细节**（如"用 LangGraph 做的"），只写用户视角能做的事                     |
+| `examples`         | **典型问题示例**（few-shot 样本）        | ✅       | Router LLM  | 3-5 条真实用户问法，覆盖不同表达方式；对路由准确率提升最大——LLM 遇到相似问题会自然联想到这个 Agent                        |
+| `not_for`          | **反向说明**：明确不该我干、应该派给谁    | 强烈推荐 | Router LLM  | 用来消歧近义 Agent，写清"→ xxx_agent"，Router 会直接改派；能显著减少幻觉                                                 |
+| `routing_keywords` | **关键词列表**（规则路由用）              | 可选     | 规则 Router | 高置信度的专属词（如 `DTC`、`TSB`）；命中即直接调用，跳过 LLM 判断，省成本、提速度；**别放通用词**（"车"、"问题"这种） |
+
+**块 2 写作对比**：
+
+```yaml
+# ❌ 差的写法（写实现、太笼统）
+capabilities:
+  - 使用 LangGraph 实现的车辆诊断
+  - 调用 DTC 数据库
+  - 支持多轮对话
+
+# ✅ 好的写法（用户视角、能力导向）
+capabilities:
+  - 解释 DTC/OBD 故障码含义
+  - 根据症状推理可能故障点
+  - 查询 TSB 技术服务公告
+```
+
+**块 3：调用契约**（只给 Supervisor 运行时用，不喂 LLM）
+
+| 字段                | 含义                                  | 必填           | 消费方           | 填写要点                                                                                       |
+| ------------------- | ------------------------------------- | -------------- | ---------------- | ---------------------------------------------------------------------------------------------- |
+| `transport`         | **传输协议**：Supervisor 用什么方式调你 | ✅             | Supervisor       | `http` / `mcp` / `inproc` / `grpc`；决定 Supervisor 用哪个 client                              |
+| `endpoint`          | **非流式**调用地址                      | ✅             | Supervisor       | 内网 URL，走服务发现的话写服务名（如 `http://diagnosis-agent`）而不是 IP                        |
+| `stream_endpoint`   | **流式**调用地址（SSE）                 | 支持流式则必填 | Supervisor       | 一般是 `/stream` 后缀；不支持流式就省略这个字段                                                  |
+| `health`            | **健康检查**端点                       | 强烈推荐       | K8s / Supervisor | 通常返回 `200 {"status":"ok"}`；Supervisor 启动或定期探活时用                                    |
+| `timeout_ms`        | **单次调用超时**（毫秒）                | ✅             | Supervisor       | 按 Agent 复杂度定：简单问答 10s，复杂检索/推理 30s，长任务 60s+；**超时后 Supervisor 会切断**    |
+| `max_retries`       | **失败重试次数**                        | 可选           | Supervisor       | 幂等的 Agent 才设 >0；有副作用的（写数据库、下单）必须设 0                                      |
+| `stateful`          | 是否**有状态**（依赖多轮 checkpoint）   | ✅             | Supervisor 路由  | `true` 时 Supervisor 必须保证同一 session_id 命中同一后端实例（或用共享 checkpoint 存储）        |
+| `auth.type`         | 认证方式                               | ✅             | Supervisor       | `bearer` / `apikey` / `mtls` / `none`                                                          |
+| `auth.secret_ref`   | **密钥名**（不是密钥本身！）            | ✅             | Supervisor       | 引用配置中心/K8s Secret 里的名字；**明文写死会被 code review 打回**                              |
+| `input_schema_ref`  | 请求 Schema 版本引用                   | ✅             | Supervisor 校验  | 指向 `contracts` 里的 Pydantic 模型；版本化便于契约演进                                        |
+| `output_schema_ref` | 响应 Schema 版本引用                   | ✅             | Supervisor 校验  | 同上；不一致时 Supervisor 直接拒绝调用                                                         |
+| `required_context`  | 声明**依赖的全局上下文字段**            | 可选           | Supervisor       | Supervisor 调用前会检查用户上下文是否有这些字段；缺失就先问用户或从 CRM 拉取，不硬调过去导致失败 |
+
+**三块的边界与设计原则**
+
+| 块        | 面向       | 变动频率       | 是否喂给 LLM |
+| --------- | ---------- | -------------- | ------------ |
+| 块 1 身份 | 平台/人    | 低（版本才变） | 否           |
+| 块 2 路由 | Router LLM | 中（能力变化） | **是**       |
+| 块 3 契约 | Supervisor | 低（部署变更） | 否           |
+
+四条设计原则：
+
+1. **信息分层**——不同消费方看不同字段，防止敏感信息泄漏到 LLM
+2. **描述与实现分离**——块 2 只讲"能干什么"，块 3 才讲"怎么调"；重构内部实现不影响 Card
+3. **契约版本化**——`version` + `input_schema_ref` 让 Agent 可独立演进不破坏调用方
+4. **秘密外置**——`auth.secret_ref` 只存引用名，真实密钥走 Secret 管理系统
+
+#### 3.3.3 Supervisor 如何"用"这份 Card
+
+**运行时选谁**：只把"块 2"喂给 LLM，其他运维字段不喂——省 token、防泄漏。
+
+```python
+# 把所有 Card 的路由块拼进 router 的 system prompt
+system_prompt = f"""
+你是一个路由器。根据用户问题从下列 Agent 中选一个：
+
+{format_agent_cards(registry)}   # 只提取 name/display_name/capabilities/examples/not_for
+
+只输出 JSON: {{"agent_name": "...", "reason": "..."}}
+"""
+```
+
+**调用时怎么调**：读"块 3"的 `endpoint / transport / timeout_ms / auth` 直接发请求。
+
+这样**新增 Agent 只需注册一条 Card，不改 Supervisor 代码**。
+
+#### 3.3.4 Card 存哪里（三种模式）
+
+| 方式                                              | 优点                       | 缺点                           | 适合               |
+| ------------------------------------------------- | -------------------------- | ------------------------------ | ------------------ |
+| **Git 仓库**                                | 版本可追溯、PR review 门禁 | 更新要发版                     | 中小规模、变动少   |
+| **配置中心**（Nacos/Apollo）                | 热更新、灰度               | 需要基础设施                   | 已有配置中心的团队 |
+| **Agent 自注册**（启动时 POST 到 Registry） | 完全自动化                 | 需要 Registry 服务、一致性问题 | 大规模、动态扩缩容 |
+
+**建议一开始用 Git 仓库**——`registry/agents/*.yaml`，每个 Agent 一个文件，PR 合并即生效。Agent 数超过 20 个再考虑升级。
+
+---
+
+### 3.4 Supervisor 的编排逻辑（LangGraph 实现）
+
+```
+        ┌──────────┐
+        │  entry   │
+        └────┬─────┘
+             ▼
+   ┌───────────────────┐
+   │  router (LLM)      │  ← 读 Registry，输出目标 agent_name（或 clarify/fallback）
+   └────┬──────────────┘
+        │
+        ├─→ 单 Agent 路由 → call_agent → aggregate → END
+        │
+        ├─→ 需澄清        → ask_user → END
+        │
+        └─→ 多 Agent 协同 → parallel_call → merge → END
+```
+
+路由策略从简单到复杂三档：
+
+1. **关键词/规则路由**：正则匹配 `routing_keywords`，命中即调用（成本低、可控）
+2. **LLM 单选路由**：LLM 从 Card 列表里选一个（灵活、有幻觉风险）
+3. **LLM 分解 + 并行路由**：LLM 把复杂问题拆成多个子问题，分别分给不同 Agent，最后聚合（能力强、成本高）
+
+一开始建议 **1 + 2 组合**：关键词兜底 + LLM 兜顶。
+
+---
+
+### 3.5 会话与上下文
+
+- **session_id 由 Supervisor 统一管理**，向下透传，子 Agent 不再自己维护 session
+- 上下文分层：
+  - **全局上下文**：用户信息、车型 VIN → Supervisor 附加，所有 Agent 都能看到
+  - **对话历史**：Supervisor 存（Redis / DB），按需截断后传递
+  - **Agent 内部状态**：LangGraph checkpoint 各自管，用 session_id 做 key
+- **粘性会话**：`stateful: true` 的 Agent，路由要保证同一 session_id 命中同一后端实例（或用共享 checkpoint 存储）
+
+---
+
+### 3.6 流式输出（方式 A 场景）
+
+方式 A 下流式要跨两跳：**用户 ↔ Supervisor ↔ 子 Agent**。Supervisor 的核心角色是**透传管道**，不是"重新生成"。
+
+#### 3.6.1 整体链路
+
+```
+前端                Supervisor              子 Agent
+  │                     │                      │
+  │  POST /chat (SSE)   │                      │
+  ├────────────────────>│                      │
+  │                     │  1. 路由决策           │
+  │  event: routing     │     (小 LLM 调用，非流式)│
+  │<────────────────────┤                      │
+  │                     │                      │
+  │                     │  POST /stream (SSE)  │
+  │                     ├─────────────────────>│
+  │                     │                      │  子 Agent 生成
+  │                     │  event: token "你"    │◀── chunk 1
+  │  event: token "你"   │<─────────────────────┤
+  │<────────────────────┤                      │
+  │                     │  event: token "好"    │◀── chunk 2
+  │  event: token "好"   │<─────────────────────┤
+  │<────────────────────┤                      │
+  │                     │  event: done          │
+  │  event: done         │<─────────────────────┤
+  │<────────────────────┤                      │
+```
+
+Supervisor 三个动作：
+
+1. **先做一次非流式的路由决策**（几百毫秒），先推一个 `routing` 事件让前端展示"正在派单给 XX Agent"
+2. **打开对子 Agent 的 SSE 连接**
+3. **把子 Agent 推来的每个 chunk 原样透传**给前端（可加轻量包装：trace_id、agent_name 标签、脱敏）
+
+#### 3.6.2 协议选择：SSE
+
+推荐 **SSE（Server-Sent Events）**：HTTP 原生、防火墙友好、浏览器 EventSource 直接支持、断线重连有原生 `Last-Event-ID` 机制。WebSocket 也能用，但复杂度高，除非要做全双工。
+
+#### 3.6.3 子 Agent 侧代码（同事写）
+
+```python
+# server.py —— 每个同事的 FastAPI wrapper
+from fastapi import FastAPI
+from fastapi.responses import StreamingResponse
+from contracts import AgentRequest
+import json
+
+app = FastAPI()
+
+@app.post("/stream")
+async def stream(req: AgentRequest):
+    async def event_generator():
+        # LangGraph 原生支持 astream_events
+        async for event in my_graph.astream_events(
+            {"messages": req.to_messages()},
+            version="v2",
+        ):
+            kind = event["event"]
+            if kind == "on_chat_model_stream":
+                chunk = event["data"]["chunk"].content
+                if chunk:
+                    yield f"event: token\ndata: {json.dumps({'text': chunk})}\n\n"
+            elif kind == "on_tool_start":
+                yield f"event: tool\ndata: {json.dumps({'name': event['name']})}\n\n"
+        yield "event: done\ndata: {}\n\n"
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
+```
+
+#### 3.6.4 Supervisor 侧代码（平台组写）
+
+```python
+# supervisor/main.py
+from fastapi import FastAPI
+from fastapi.responses import StreamingResponse
+import httpx, json
+
+app = FastAPI()
+
+@app.post("/chat")
+async def chat(req: UserRequest):
+    async def gateway():
+        # 1) 路由决策（非流式，快）
+        agent = await router.route(req.input, registry)
+        yield f"event: routing\ndata: {json.dumps({'agent': agent.name})}\n\n"
+
+        # 2) 打开对子 Agent 的 SSE 连接
+        headers = {
+            "X-Trace-Id": req.trace_id,
+            "X-Session-Id": req.session_id,
+            "Authorization": f"Bearer {agent.token}",
+        }
+        payload = build_agent_request(req, agent)
+
+        async with httpx.AsyncClient(timeout=agent.timeout_ms/1000) as client:
+            async with client.stream(
+                "POST", agent.stream_endpoint,
+                json=payload.dict(), headers=headers,
+            ) as resp:
+                # 3) 原样透传，可选做包装 / 过滤 / 审计
+                async for line in resp.aiter_lines():
+                    if line:
+                        yield line + "\n"
+
+        yield "event: done\ndata: {}\n\n"
+
+    return StreamingResponse(gateway(), media_type="text/event-stream")
+```
+
+#### 3.6.5 前端消费
+
+```javascript
+const es = new EventSource("/chat?...");
+
+es.addEventListener("routing", (e) => {
+  const { agent } = JSON.parse(e.data);
+  showBadge(`正在由 ${agent} 回答...`);
+});
+
+es.addEventListener("token", (e) => {
+  const { text } = JSON.parse(e.data);
+  appendToBubble(text);
+});
+
+es.addEventListener("done", () => es.close());
+```
+
+#### 3.6.6 五个容易踩的坑
+
+1. **中间任何一环有 buffer 就没流式了**
+
+   - Nginx / API Gateway 前面挡着，必须关 `proxy_buffering off`
+   - FastAPI 的 `StreamingResponse` 别套在压缩中间件后面
+2. **子 Agent 中途挂了**
+
+   - Supervisor 已经推了半截，突然连接断 → 推一个 `event: error`，前端展示"回答中断，可以重试"
+   - 不要静默截断，用户会以为答完了
+3. **多 Agent 并行时的流式合并**
+
+   - Router 决定并行调多个 Agent 时，Supervisor 要给每个 chunk 打上 `agent_name` 标签，前端分栏显示
+   - 或者等全部完成再让一个 summarizer 聚合（就不是纯流式了，看产品形态）
+4. **首 token 延迟**
+
+   - 路由那一步就要几百毫秒。用 `routing` 事件让用户看到"在处理"，避免以为卡了
+   - 复杂路由用 Haiku 这种小模型，把决策压到 300ms 内
+5. **token 使用统计**
+
+   - 流式过程中拿不到最终 usage，要在子 Agent 的 `done` 事件里带上 `{usage: {...}}`
+   - Supervisor 汇总到 trace 里
+
+#### 3.6.7 错误与降级
+
+- Supervisor 对上游只暴露一种流式协议（SSE），对下游各种协议做适配
+- 子 Agent 超时/异常时：
+  - 返回**结构化错误码**，Supervisor 决定是否降级（如切换到通用问答 Agent）
+  - **不要**把 Python traceback 直接透传给前端
+
+---
+
+### 3.7 可观测
+
+一次请求要能串起来：
+
+- **trace_id**：Supervisor 生成，向下透传（HTTP header / MCP metadata）
+- **日志**：结构化 JSON，字段统一（trace_id、session_id、agent_name、latency_ms、tokens）
+- **指标**：路由命中率、每个 Agent 的 QPS/P99/错误率
+- 推荐用 **LangSmith / Langfuse / OpenTelemetry** 任意一种，全链路串起来
+
+---
+
+## 四、对同事的影响面
+
+| 事项               | 需要做                                             | 工作量     |
+| ------------------ | -------------------------------------------------- | ---------- |
+| Agent 内部实现     | **不动**，保留原有 LangGraph/DeepAgents 代码 | 0          |
+| 对外暴露接口       | 加一层 FastAPI wrapper（约 30 行）                 | 半小时     |
+| 提交 Agent Card    | 写一份 YAML 提交到 registry 仓库                   | 15 分钟    |
+| 遵循 I/O Schema    | import 平台组提供的 Pydantic 模型                  | 引依赖即可 |
+| 日志/trace_id 透传 | 从 header 读 trace_id，塞进日志                    | 10 行代码  |
+
+**结论**：现有 Agent 迁移成本约 1 人天，新 Agent 从模板起步几乎零成本。
+
+---
+
+## 五、目录结构建议（monorepo 或 multi-repo 均可）
+
+```
+agents-platform/
+├── supervisor/                 # 主管 Agent（平台组维护）
+│   ├── graph.py                # LangGraph 编排
+│   ├── router.py               # 路由策略
+│   ├── registry_loader.py
+│   └── main.py                 # FastAPI 入口
+│
+├── contracts/                  # 共享契约（Pydantic Schema、SDK）
+│   ├── schema.py               # AgentRequest / AgentResponse
+│   └── client.py               # 调用子 Agent 的统一 client
+│
+├── registry/                   # Agent Card 集中登记
+│   └── agents/
+│       ├── diagnosis.yaml
+│       ├── aftersales.yaml
+│       └── ...
+│
+└── agents/                     # 各同事的 Agent（也可以拆到独立 repo）
+    ├── diagnosis/
+    │   ├── graph.py            # 原有实现，不动
+    │   └── server.py           # FastAPI wrapper
+    └── aftersales/
+        └── ...
+```
+
+---
+
+## 六、演进路线
+
+| 阶段 | 目标                                  | 关键动作                                         |
+| ---- | ------------------------------------- | ------------------------------------------------ |
+| P0   | 契约 + Registry + Supervisor 最小可用 | 定 Schema、写 Supervisor 骨架、接入 1-2 个 Agent |
+| P1   | 全量子 Agent 接入 + 可观测            | 迁移剩余 Agent、接入 LangSmith/OTel              |
+| P2   | 多 Agent 协同（分解 + 并行 + 聚合）   | Router 升级、共享 memory、跨 Agent handoff       |
+| P3   | 权限/审计/灰度/AB                     | 加认证网关、Agent 版本灰度、AB 路由              |
+
+---
+
+## 七、可能的坑与预案
+
+1. **依赖冲突**：LangGraph / DeepAgents 版本不同 → 走远程调用（方式 A），彻底隔离
+2. **路由幻觉**：LLM 选错 Agent → 关键词兜底 + Router 结果留痕 + 人工规则修正
+3. **超长上下文**：对话历史膨胀 → Supervisor 层做摘要/滑窗，不下推给子 Agent 全量历史
+4. **子 Agent 内部工具冲突**：不同 Agent 有同名工具 → 靠进程隔离天然规避
+5. **会话粘性**：LangGraph checkpoint 存本地内存 → 强制用外部 checkpointer（Redis / Postgres）
+6. **首次路由冷启动慢**：Registry Card 太多、prompt 过长 → 分级路由（先粗分类，再精细选）
+
+---
+
+## 八、一句话总结
+
+> **Supervisor 负责"选谁"，子 Agent 只负责"做事"；用统一契约和 Agent Card 把两者解耦，用远程调用保证隔离——同事该怎么写还怎么写，平台只关心接口。**

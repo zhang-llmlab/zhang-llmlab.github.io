@@ -1,0 +1,196 @@
+---
+title: "Harness 的本质与 Claude Code 的实现"
+description: "**Harness（挽具/框架）** 是包裹在 LLM 外面的一层工程系统。LLM 本身只是一个\"输入文本 → 输出文本\"的函数，它不能执行代码、不能读文件、不能记住上一次对话、不能主动做任何事。Ha"
+pubDate: 2026-07-10
+updatedDate: 2026-07-10
+tags: ["Agents 开发"]
+category: "Agents 开发"
+draft: false
+---
+# Harness 的本质与 Claude Code 的实现
+
+## 一、Harness 是什么
+
+**Harness（挽具/框架）** 是包裹在 LLM 外面的一层工程系统。LLM 本身只是一个"输入文本 → 输出文本"的函数，它不能执行代码、不能读文件、不能记住上一次对话、不能主动做任何事。Harness 的职责是：
+
+- 把外部世界（文件、命令、API、用户输入）翻译成模型能读的文本
+- 把模型输出的文本翻译成对外部世界的操作
+- 决定每一轮请求塞什么进 context window
+- 控制多轮之间的循环、并发、中断、恢复
+
+一句话：**Harness = Prompt 拼接 + 工具执行 + 上下文管理 + 控制流**。
+
+模型和 harness 之间**唯一的通道就是 prompt**（HTTP 请求里的 messages 数组）。所有"能力"都必须编码成文本塞进去，或者从模型输出的文本里解析出来。
+
+---
+
+## 二、Harness 的五个核心层次
+
+### 1. Prompt 拼接层
+每一轮请求前，harness 都会动态组装：
+- System prompt（身份、规则、可用工具、环境信息）
+- 历史对话（可能被截断或摘要压缩）
+- 工具调用结果
+- 各种 reminder（`<system-reminder>` 标签）
+- 用户当前输入
+
+模型看到的从来不是"纯用户消息"，而是一份精心编排的剧本。
+
+### 2. 工具协议层
+Harness 通过 API 的 `tools` 参数把工具以 JSON Schema 声明给模型。模型学过这套协议，会在需要时输出 `tool_use` 结构（内容形如 `{"name": "Read", "input": {"file_path": "..."}}`）。Harness 拦截这个结构，在真实系统里执行，把结果作为 `tool_result` 塞回下一轮。
+
+**关键点**：模型没有"调用"任何东西，它只是生成了描述调用的文本。真正的执行发生在 harness 里。
+
+### 3. Context 管理层
+Context window 是稀缺资源。Harness 决定：
+- 哪些消息保留、哪些压缩、哪些丢弃
+- 是否启用 prompt caching（把稳定前缀标记为可缓存，降低成本和延迟）
+- 何时触发自动摘要
+- 长文件是否只读部分、tool result 是否截断
+
+### 4. 控制流层
+纯代码逻辑，不经过 LLM：
+- **Agent loop**：模型输出含 `tool_use` → 执行 → 结果塞回 → 再次调用模型，直到没有 `tool_use` 为止
+- 并发调用（同一轮多个工具并行）
+- 权限拦截（危险工具需用户确认）
+- Hook 触发（特定事件运行 shell 脚本）
+- 子 agent 分派与结果回收
+
+### 5. 训练配合层
+Harness 之所以能"操控"模型，一半靠工程，一半靠**模型本身被后训练过**——它学会了识别 `<system-reminder>`、遵循工具 schema、按 CommonMark 格式输出、区分 user/assistant/tool 消息。没有这个训练配合，再精巧的 prompt 拼接也没用。
+
+---
+
+## 三、Claude Code 的具体做法
+
+Claude Code 是 Anthropic 官方的 CLI harness，跑的是 Claude 4.X 系列模型。它的实现覆盖了上面五个层次，下面按可观测的机制展开。
+
+### 3.1 System Prompt 的组装
+
+每一轮请求的 system prompt 大致包含：
+
+| 段 | 内容 | 特点 |
+|---|---|---|
+| 身份声明 | "You are Claude Code..." | 固定 |
+| 行为规范 | 安全约束、任务风格、代码风格 | 固定 |
+| 工具使用规则 | 何时用哪个工具、并行调用规则 | 固定 |
+| Tone and style | 简洁、少 emoji、markdown 链接格式 | 固定 |
+| 环境信息 | 工作目录、平台、shell、模型 ID、日期 | 每次动态生成 |
+| Session guidance | 项目特定指令 | 从 CLAUDE.md 读取 |
+| Memory 系统说明 | 如何读写 memory 文件 | 固定 |
+| VSCode 上下文 | 若在 IDE 里则注入 | 条件注入 |
+
+这些段拼在一起，每次请求都发一份（靠 prompt caching 摊薄成本）。
+
+### 3.2 工具体系
+
+Claude Code 内置约 20 个工具，通过 API 的 `tools` 参数声明。典型分类：
+
+- **文件类**：`Read`、`Write`、`Edit`、`NotebookEdit`
+- **搜索类**：内嵌 `Bash`（`grep`/`find`）
+- **执行类**：`Bash`（支持 `run_in_background`、`timeout`）、`Monitor`（流式监听）
+- **网络类**：`WebFetch`、`WebSearch`
+- **编排类**：`Agent`（分派子 agent）、`Workflow`（脚本化多 agent）、`SendMessage`
+- **规划类**：`TodoWrite`、`EnterPlanMode`、`ExitPlanMode`、`AskUserQuestion`
+- **调度类**：`CronCreate`、`ScheduleWakeup`
+- **平台类**：`EnterWorktree`/`ExitWorktree`、`PushNotification`、`Skill`
+
+每个工具的 JSON Schema 里除了参数还有大段自然语言 description，模型据此判断"该不该用、什么时候用、怎么用"。这些 description 本身就是 prompt engineering 的一部分。
+
+### 3.3 Reminder 注入机制
+
+`<system-reminder>` 是 harness 在对话流里"插话"的方式。用户看不到，但模型看得到。你在本次会话开头就能看到几个：
+
+- SessionStart hook 注入的 superpowers 说明
+- Available agent types 列表
+- Available skills 列表
+- currentDate 日期上下文
+
+模型被训练成把 `<system-reminder>` 当"来自系统的提醒"处理，而不是当用户话。这让 harness 可以在**不打断用户对话流**的前提下修改模型行为。
+
+### 3.4 Skills 系统
+
+Skills 是**按需加载的行为模块**。所有 skill 的名字和一句话描述在会话开始时就注入了（就是上面那个 skill 列表），但**完整内容只有在 `Skill` 工具被调用时才加载进 context**。这是典型的分层加载：
+
+- 常驻：skill 索引（一句话）
+- 按需：skill 全文（几百到几千 token）
+
+好处是既让模型"知道有这个能力"，又不把 context 占满。
+
+### 3.5 Hooks 系统
+
+Hooks 是 harness 在特定事件时执行的 shell 命令，配置在 `settings.json`。常见事件：
+- SessionStart（会话开始）
+- PreToolUse / PostToolUse（工具调用前后）
+- UserPromptSubmit（用户提交前）
+- Stop（模型停止时）
+
+Hook 的输出可以作为额外 context 注入回模型（例如你现在看到的 superpowers 提示就是 SessionStart hook 注入的）。这让用户可以**在不改模型代码的前提下改变 agent 行为**。
+
+### 3.6 Permission Mode 和权限拦截
+
+Bash、Edit、Write 等有副作用的工具受权限系统拦截。Harness 在执行前根据规则判断：
+- 自动允许（如 `git status`）
+- 需要用户确认（如 `rm -rf`）
+- 直接拒绝
+
+用户拒绝后，harness 把"用户拒绝了"作为 tool_result 塞回给模型，模型据此调整策略。
+
+### 3.7 Subagent 分派
+
+`Agent` 工具让主 agent 分派子 agent。子 agent 有：
+- 独立的 context window（不占父 context）
+- 独立的工具子集（例如 `Explore` 只有只读工具）
+- 独立的 system prompt
+- 只把**最终文本**返回给父 agent
+
+这是 harness 用来**扩展 context 容量**的关键手法：把大量搜索、读取工作外包给子 agent，父 agent 只吸收摘要。
+
+`Workflow` 更进一步，用 JavaScript 脚本编排多个子 agent，实现 pipeline、parallel、判官panel 等确定性控制流。
+
+### 3.8 Memory 系统
+
+Claude Code 有一个基于文件的持久 memory：
+- `MEMORY.md` 是索引，常驻 context
+- 具体记忆文件按需读取
+- 分为 user / feedback / project / reference 四类
+
+Harness 层面它就是一个约定好的目录结构 + system prompt 里的使用说明，模型读写它和读写普通文件一样，靠训练+提示词让模型知道**什么该写、什么不该写、怎么组织**。
+
+### 3.9 Prompt Caching
+
+Anthropic API 支持 prompt caching：把稳定的前缀标记为可缓存，后续请求命中缓存的部分只按 1/10 价格计费，延迟也大幅下降。Claude Code 的 system prompt 和早期对话是典型的缓存目标。这就是为什么本文档强调"每轮都发完整 system prompt"其实并不昂贵。
+
+### 3.10 IDE 集成
+
+在 VSCode 里，harness 还会注入：
+- 当前选中的代码（`<ide_selection>` 标签）
+- 打开的文件列表
+- 编辑器状态
+
+并要求模型用 markdown 链接格式引用文件（`[file.ts:42](src/file.ts#L42)`），让 IDE 能渲染成可点击链接。这是**输出协议**层面的 harness 约束。
+
+---
+
+## 四、可以观察到的信号
+
+如果你想验证以上机制，可以：
+- 在 Claude Code 会话里输入 `/config`、`/mcp`、`/hooks` 查看配置
+- 看 `~/.claude/settings.json` 和 `.claude/settings.json`
+- 看 `~/.claude/projects/<project>/` 下的 session 日志（能看到完整的 messages 数组）
+- 看 `~/.claude/skills/` 和 `~/.claude/agents/` 目录结构
+
+从日志里你能直接看到 harness 是怎么把工具结果、reminder、环境信息拼进 prompt 的——所有"魔法"都是可审计的文本拼接。
+
+---
+
+## 五、总结
+
+Harness 工程的本质不是"训练更聪明的模型"，而是**围绕一个纯函数式的 LLM，搭建一套能与真实世界交互的系统**。Prompt 是唯一的通道，但真正决定 agent 行为的是：
+
+1. **拼什么进 prompt**（system prompt、工具、reminder、上下文）
+2. **怎么解析出 prompt**（tool_use 协议、结构化输出）
+3. **拼多少次、按什么顺序拼**（agent loop、子 agent、workflow）
+4. **谁能改变拼的方式**（hooks、skills、settings、memory）
+
+Claude Code 是这套思路目前较完整的一个开源工程实现。它的每一个特性（skills、hooks、subagents、memory、workflows）都可以映射回上面五个层次里的某一层。理解了这个映射，就理解了所有 agent harness 的骨架——差异只在于每一层做得多细。

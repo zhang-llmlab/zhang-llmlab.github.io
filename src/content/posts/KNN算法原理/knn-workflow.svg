@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 780 160" font-family="Arial, sans-serif">
+  <defs>
+    <style>
+      .box { fill: #ecf0f1; stroke: #34495e; stroke-width: 1.5; rx: 8; }
+      .box-blue { fill: #d6eaf8; stroke: #2874a6; stroke-width: 1.5; rx: 8; }
+      .box-orange { fill: #fdebd0; stroke: #d68910; stroke-width: 1.5; rx: 8; }
+      .box-green { fill: #d5f5e3; stroke: #1e8449; stroke-width: 1.5; rx: 8; }
+      .arrow { stroke: #34495e; stroke-width: 2; fill: none; marker-end: url(#arr); }
+      .txt { font-size: 12px; fill: #2c3e50; text-anchor: middle; }
+      .idx { font-size: 11px; font-weight: bold; fill: #7f8c8d; text-anchor: middle; }
+    </style>
+    <marker id="arr" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#34495e"/>
+    </marker>
+  </defs>
+
+  <text x="390" y="20" text-anchor="middle" font-size="15" font-weight="bold" fill="#2c3e50">KNN 算法执行流程</text>
+
+  <!-- Steps -->
+  <g>
+    <rect x="20" y="55" width="130" height="70" class="box-blue"/>
+    <text x="85" y="45" class="idx">① 输入</text>
+    <text x="85" y="85" class="txt">给定训练集</text>
+    <text x="85" y="103" class="txt">与待预测样本 x</text>
+
+    <rect x="170" y="55" width="130" height="70" class="box-orange"/>
+    <text x="235" y="45" class="idx">② 计算距离</text>
+    <text x="235" y="85" class="txt">计算 x 与训练集中</text>
+    <text x="235" y="103" class="txt">每个样本的距离</text>
+
+    <rect x="320" y="55" width="130" height="70" class="box-orange"/>
+    <text x="385" y="45" class="idx">③ 取近邻</text>
+    <text x="385" y="85" class="txt">选取距离最小的</text>
+    <text x="385" y="103" class="txt">K 个训练样本</text>
+
+    <rect x="470" y="55" width="130" height="70" class="box"/>
+    <text x="535" y="45" class="idx">④ 决策</text>
+    <text x="535" y="80" class="txt">分类：多数投票</text>
+    <text x="535" y="98" class="txt">回归：加权平均</text>
+    <text x="535" y="116" class="txt">（可按距离加权）</text>
+
+    <rect x="620" y="55" width="140" height="70" class="box-green"/>
+    <text x="690" y="45" class="idx">⑤ 输出</text>
+    <text x="690" y="85" class="txt">返回类别</text>
+    <text x="690" y="103" class="txt">或预测值</text>
+  </g>
+
+  <!-- Arrows -->
+  <line x1="150" y1="90" x2="170" y2="90" class="arrow"/>
+  <line x1="300" y1="90" x2="320" y2="90" class="arrow"/>
+  <line x1="450" y1="90" x2="470" y2="90" class="arrow"/>
+  <line x1="600" y1="90" x2="620" y2="90" class="arrow"/>
+</svg>

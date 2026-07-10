@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 280" font-family="Arial, sans-serif">
+  <defs>
+    <style>
+      .classA { fill: #e74c3c; }
+      .classB { fill: #3498db; }
+      .query { fill: #2ecc71; stroke: #196f3d; stroke-width: 1.5; }
+      .k-circle { fill: none; stroke: #f39c12; stroke-width: 2; stroke-dasharray: 4 3; }
+      .label { font-size: 12px; fill: #2c3e50; }
+      .title { font-size: 14px; font-weight: bold; fill: #2c3e50; }
+      .result { font-size: 13px; font-weight: bold; }
+    </style>
+  </defs>
+
+  <!-- Panel 1: K=1 -->
+  <g transform="translate(20,20)">
+    <text x="100" y="15" text-anchor="middle" class="title">K = 1（过拟合风险）</text>
+    <rect x="10" y="30" width="180" height="180" fill="#fafafa" stroke="#ddd"/>
+    <circle cx="120" cy="120" r="22" class="k-circle"/>
+    <!-- Points -->
+    <circle cx="50" cy="60" r="6" class="classA"/>
+    <circle cx="80" cy="80" r="6" class="classA"/>
+    <circle cx="60" cy="130" r="6" class="classA"/>
+    <circle cx="110" cy="105" r="6" class="classA"/>
+    <circle cx="160" cy="70" r="6" class="classA"/>
+    <circle cx="140" cy="140" r="6" class="classB"/>
+    <circle cx="170" cy="170" r="6" class="classB"/>
+    <circle cx="100" cy="180" r="6" class="classB"/>
+    <circle cx="60" cy="180" r="6" class="classB"/>
+    <circle cx="150" cy="195" r="6" class="classB"/>
+    <!-- Query -->
+    <polygon points="120,113 113,127 127,127" class="query"/>
+    <text x="100" y="240" text-anchor="middle" class="result" fill="#3498db">仅看最近 1 个 → 蓝</text>
+    <text x="100" y="258" text-anchor="middle" class="label">对噪声敏感</text>
+  </g>
+
+  <!-- Panel 2: K=5 -->
+  <g transform="translate(250,20)">
+    <text x="100" y="15" text-anchor="middle" class="title">K = 5（较平衡）</text>
+    <rect x="10" y="30" width="180" height="180" fill="#fafafa" stroke="#ddd"/>
+    <circle cx="120" cy="120" r="50" class="k-circle"/>
+    <circle cx="50" cy="60" r="6" class="classA"/>
+    <circle cx="80" cy="80" r="6" class="classA"/>
+    <circle cx="60" cy="130" r="6" class="classA"/>
+    <circle cx="110" cy="105" r="6" class="classA"/>
+    <circle cx="160" cy="70" r="6" class="classA"/>
+    <circle cx="140" cy="140" r="6" class="classB"/>
+    <circle cx="170" cy="170" r="6" class="classB"/>
+    <circle cx="100" cy="180" r="6" class="classB"/>
+    <circle cx="60" cy="180" r="6" class="classB"/>
+    <circle cx="150" cy="195" r="6" class="classB"/>
+    <polygon points="120,113 113,127 127,127" class="query"/>
+    <text x="100" y="240" text-anchor="middle" class="result" fill="#e74c3c">3 红 vs 2 蓝 → 红</text>
+    <text x="100" y="258" text-anchor="middle" class="label">兼顾全局与局部</text>
+  </g>
+
+  <!-- Panel 3: K=15 -->
+  <g transform="translate(480,20)">
+    <text x="100" y="15" text-anchor="middle" class="title">K 过大（欠拟合风险）</text>
+    <rect x="10" y="30" width="180" height="180" fill="#fafafa" stroke="#ddd"/>
+    <circle cx="120" cy="120" r="90" class="k-circle"/>
+    <circle cx="50" cy="60" r="6" class="classA"/>
+    <circle cx="80" cy="80" r="6" class="classA"/>
+    <circle cx="60" cy="130" r="6" class="classA"/>
+    <circle cx="110" cy="105" r="6" class="classA"/>
+    <circle cx="160" cy="70" r="6" class="classA"/>
+    <circle cx="140" cy="140" r="6" class="classB"/>
+    <circle cx="170" cy="170" r="6" class="classB"/>
+    <circle cx="100" cy="180" r="6" class="classB"/>
+    <circle cx="60" cy="180" r="6" class="classB"/>
+    <circle cx="150" cy="195" r="6" class="classB"/>
+    <polygon points="120,113 113,127 127,127" class="query"/>
+    <text x="100" y="240" text-anchor="middle" class="result" fill="#7f8c8d">被全局多数类淹没</text>
+    <text x="100" y="258" text-anchor="middle" class="label">决策边界过于平滑</text>
+  </g>
+</svg>

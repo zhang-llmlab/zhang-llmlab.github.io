@@ -1,0 +1,102 @@
+---
+title: "主流 Multi-Agent 架构"
+description: "Multi-Agent 架构可以从**协作拓扑**、**控制方式**和**代表框架**三个维度来梳理。"
+pubDate: 2026-07-10
+updatedDate: 2026-07-10
+tags: ["Agents 开发"]
+category: "Agents 开发"
+draft: false
+---
+# 主流 Multi-Agent 架构
+
+Multi-Agent 架构可以从**协作拓扑**、**控制方式**和**代表框架**三个维度来梳理。
+
+## 一、按拓扑结构划分
+
+### 1. Single Orchestrator / Supervisor（中心化调度）
+
+一个主 agent（planner / orchestrator）负责拆解任务、调度子 agent、汇总结果。
+
+- **代表**：LangGraph Supervisor、OpenAI Swarm、Anthropic 的 orchestrator-worker 模式（Claude Code、Claude Research 都采用这种）
+- **优点**：可控、可观测、易调试
+- **缺点**：主 agent 是瓶颈，扩展性受限
+
+### 2. Hierarchical（分层 / 树状）
+
+Supervisor 之下还有 sub-supervisor，形成多层树。适合任务域较宽、需要分领域专家的场景。
+
+- **代表**：LangGraph Hierarchical Teams、MetaGPT（模拟软件公司的 CEO → PM → Dev → QA 层级）
+- **适用**：大型任务分解、多领域协作
+
+### 3. Peer-to-Peer / Network（去中心化网状）
+
+Agent 之间可以自由通信、互相委派，没有固定主从关系。
+
+- **代表**：AutoGen 的 GroupChat、CAMEL 的 role-playing、CrewAI 的 `hierarchical=false` 模式
+- **优点**：灵活、涌现性强
+- **缺点**：容易失控、成本高、难调试
+
+### 4. Pipeline / Sequential（流水线）
+
+固定顺序执行，A → B → C，每个 agent 专注一个阶段。
+
+- **适用**：确定性工作流（数据处理、代码审查流水线、内容生成流水线）
+
+### 5. Blackboard（黑板模式）
+
+Agent 不直接通信，通过共享内存 / 状态读写协作。
+
+- **代表**：LangGraph 的 state graph、部分 RAG-agent 系统
+- **特点**：解耦性好，状态可追溯
+
+---
+
+## 二、按控制方式划分
+
+| 控制方式                            | 说明                                            | 代表                          |
+| ----------------------------------- | ----------------------------------------------- | ----------------------------- |
+| **静态工作流（Graph-based）** | 节点和边预定义，agent 只在节点内决策            | LangGraph、Dify、Coze         |
+| **动态调度（LLM-driven routing）** | 由 LLM 决定下一个交给谁，图在运行时生成         | AutoGen、Swarm                |
+| **Actor / Message-passing**   | 借鉴 actor model，用异步消息队列解耦            | AutoGen v0.4、Agno            |
+
+---
+
+## 三、代表性开源框架对照
+
+| 框架                                       | 典型架构              | 特点                                            |
+| ------------------------------------------ | --------------------- | ----------------------------------------------- |
+| **LangGraph**                        | Graph + Supervisor    | 状态机式，可观测性强，生产常用                  |
+| **AutoGen (Microsoft)**              | GroupChat / Actor     | 对话驱动，v0.4 转向 actor model                 |
+| **CrewAI**                           | Role-based crew       | 强调"角色 + 任务"，上手快                       |
+| **OpenAI Swarm / Agents SDK**        | Handoff-based         | 轻量，靠 handoff 在 agent 间传递控制            |
+| **MetaGPT**                          | 分层 SOP              | 模拟软件公司流程                                |
+| **CAMEL**                            | Role-playing 双人对话 | 学术起源，研究 agent 涌现行为                   |
+| **Anthropic Orchestrator-Worker** | 中心化 + 并行子 agent | Claude Research / Code 的模式，强调隔离上下文   |
+
+---
+
+## 四、近年趋势
+
+1. **上下文隔离 + 并行子 agent**（Anthropic 力推）
+   主 agent 只看摘要，子 agent 各自独立 context，避免污染，是当前 Claude Code / Claude Research 的核心思路。
+
+2. **A2A / MCP 等协议标准化**
+   跨框架 agent 互操作：Google 的 A2A（Agent-to-Agent）、Anthropic 的 MCP（Model Context Protocol）。
+
+3. **Graph + LLM router 混合**
+   静态骨架保证可控，动态路由保留灵活性，是目前生产系统的主流折中方案。
+
+4. **从"多 agent 对话"回归"orchestrator + 隔离 worker"**
+   早期 AutoGen 式的多 agent 群聊在生产中被证明成本高、难控，越来越多团队回到中心化调度 + 隔离 subagent 的模式。
+
+---
+
+## 五、选型建议
+
+| 场景                            | 推荐架构                                   |
+| ------------------------------- | ------------------------------------------ |
+| 确定性业务工作流                | Pipeline / Graph-based（LangGraph、Dify）  |
+| 代码 / 研究类深度任务           | Orchestrator-Worker（Claude Code 风格）   |
+| 多领域专家协作                  | Hierarchical（MetaGPT、LangGraph Teams）  |
+| 探索性 / 涌现行为研究           | Peer-to-Peer（AutoGen、CAMEL）            |
+| 快速搭建 Demo                   | CrewAI、Swarm                              |

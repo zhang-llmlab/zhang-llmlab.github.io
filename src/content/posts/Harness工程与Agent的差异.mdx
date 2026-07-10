@@ -1,0 +1,184 @@
+---
+title: "Harness 工程与 Autonomous Agent 的差异"
+description: "**Harness 是基础设施，Autonomous Agent 是跑在这个基础设施上的一种应用形态。**"
+pubDate: 2026-07-10
+updatedDate: 2026-07-10
+tags: ["Agents 开发"]
+category: "Agents 开发"
+draft: false
+---
+# Harness 工程与 Autonomous Agent 的差异
+
+## 一、两者不是同一层的东西
+
+**Harness 是基础设施，Autonomous Agent 是跑在这个基础设施上的一种应用形态。**
+
+它们经常被混谈，是因为很多开源项目把两层揉在一个代码库里了（例如 AutoGPT 既是 harness 也是 agent）。但概念上应该分开：
+
+- **Harness**：围绕 LLM 搭出来的、与任务无关的通用框架，负责让模型能和世界交互
+- **Autonomous Agent**：给定一个目标后能自主决策、自主执行、自主恢复的系统
+
+一句话类比：
+- 构建 Harness = 造一台机床（通用、稳定、让人用得顺手）
+- 构建 Agent = 用机床造一个能自己干活的机器人（需要目标、记忆、规划、边界、预算、监控）
+
+---
+
+## 二、核心区别对照表
+
+| 维度 | Harness | Autonomous Agent |
+|---|---|---|
+| **视角** | 工程 / 框架 | 产品 / 目标 |
+| **关心什么** | 怎么让 LLM 能与世界交互 | 怎么让系统自主完成一个目标 |
+| **驱动源** | 用户输入驱动（每一步等指令） | 自身目标驱动（自己决定下一步） |
+| **典型形态** | Claude Code、Cursor、Cline、Aider | AutoGPT、Devin、Manus、cron agent |
+| **时间尺度** | 一个会话（分钟到小时） | 持续任务（小时到天/周） |
+| **人在环里** | Human-in-the-loop 是常态 | Human-in-the-loop 是例外 |
+| **失败恢复** | 靠用户下一句话 | 必须自己有重试、回滚、状态持久化 |
+| **成功指标** | 好不好用、快不快、准不准 | 目标达没达成、代价多大 |
+| **评估方式** | UX 主观评价 + benchmark | 端到端任务完成率 |
+| **交付形态** | CLI / IDE 插件 / 桌面应用 | 服务 / 后台进程 / 定时任务 |
+
+---
+
+## 三、技术能力上的差异
+
+### 3.1 Harness 需要、Agent 不额外需要的
+- **交互式 UI**：流式渲染、进度显示、可点击链接
+- **权限确认**：每个危险操作弹窗
+- **IDE 集成**：编辑器选中、文件树、diff 视图
+- **快速响应**：用户在等，延迟敏感
+
+这些都是"服务人"的能力。
+
+### 3.2 Agent 需要、Harness 通常不用的
+
+#### 目标表示（Goal Representation）
+Harness 里"下一步做什么"就是"用户下一条消息"。Agent 必须有**显式的目标结构**：
+- 顶层 goal
+- 分解出的 subgoal 树
+- 每个 subgoal 的完成判据
+- 优先级、依赖、状态机
+
+没有这个，模型跑几轮就会漂移。
+
+#### 长期记忆（Long-term Memory）
+Harness 的记忆基本等于当前会话的 context window。Agent 必须有：
+- 跨会话的 state（做过什么、结果如何）
+- 经验库（哪些方法在这类任务上有效）
+- 失败案例库（避免重复踩坑）
+- 常用是 vector store + 结构化数据库混合
+
+#### 规划-执行-反思循环
+Harness 一般靠模型即时决策。Agent 需要显式循环：
+- **Plan**：把 goal 拆成可执行步骤
+- **Act**：执行一步
+- **Observe**：收集结果
+- **Reflect**：这步是否推进了目标？要不要改计划？
+- 常见范式：ReAct、Reflexion、Tree-of-Thoughts、Plan-and-Solve
+
+#### 自触发（Self-Triggering）
+Harness 是被动的——用户不说话它就停。Agent 需要主动性：
+- 定时唤醒（cron）
+- 事件订阅（webhook、消息队列）
+- 条件轮询（"CI 结束了没"）
+- 长任务的心跳检查
+
+#### 自主决策边界（Autonomy Boundary）
+没有人盯着，agent 必须自己知道：
+- 什么可以自己做
+- 什么必须停下来问人（升级点，escalation）
+- 什么必须立刻停并报警（护栏，guardrails）
+
+边界写不好的 agent 要么什么都问（退化成 harness）、要么闷头做错事。
+
+#### 成本预算（Budgeting）
+- Token 上限
+- 时间上限
+- 金钱上限（API 调用、云资源）
+- 超预算自己停并汇报，而不是无限循环
+
+#### 可观测性（Observability）
+因为没人盯着执行过程，必须有：
+- 完整 trace（每一步的输入输出、决策原因）
+- 关键节点告警
+- 事后回放和调试
+- 通常需要专门的 agent-tracing 系统（LangSmith、Langfuse、Arize 之类）
+
+---
+
+## 四、开发关注点的差异
+
+### Harness 开发者关心的问题
+- Context window 怎么组织最省 token、最容易被模型理解
+- 工具 schema 怎么设计让模型少犯错
+- 权限模型怎么设计不烦人又安全
+- IDE / CLI 交互怎么做得顺手
+- Prompt caching 怎么命中率最高
+- Hook / plugin 系统怎么让用户能扩展
+
+### Agent 开发者关心的问题
+- 目标怎么定义、怎么拆解
+- 规划算法用哪种（linear / tree / graph）
+- 失败了怎么恢复、怎么学习
+- 长时间跑下去 context 怎么管理（摘要、外存）
+- 多个 agent 怎么协作（消息、共享 state、锁）
+- 什么时候该停下来问人
+- 端到端评估用什么 benchmark
+
+**共同点**：两者都绕不开 prompt 拼接、工具协议、模型选型、成本控制。
+
+---
+
+## 五、Claude Code 里两者的关系
+
+Claude Code 主体是 **harness**，但内置了几个把它推向 agent 的机制：
+
+| 机制 | 让它变成 agent 的作用 |
+|---|---|
+| `CronCreate` | 定时自触发 |
+| `ScheduleWakeup` | 一次性自触发 |
+| `Workflow` | 用脚本编排多个子 agent 确定性执行 |
+| `Agent` 工具 | 分派子 agent，自己 join 结果 |
+| Memory 系统 | 跨会话状态 |
+| `<<autonomous-loop>>` sentinel | 无人值守循环模式 |
+| Hooks | 外部事件驱动模型 |
+| `Monitor` | 长时间流式监听 |
+
+所以更准确的说法是：**Claude Code 是一个可以配置出 agent 行为的 harness**，而不是"Claude Code 本身就是 autonomous agent"。
+- 你一问一答用它 → 它在扮演 harness
+- 你让它跑 `/loop` 或长 workflow 或定时任务 → 它在扮演 agent
+
+这也是一个健康的架构：**harness 层通用稳定，agent 层按需组合出来**。反过来把 agent 逻辑硬编码进 harness，会导致两层都难改。
+
+---
+
+## 六、什么时候该做 Harness、什么时候该做 Agent
+
+### 该做 Harness 的场景
+- 用户是**开发者/专业用户**，需要控制感
+- 任务**边界不清晰**，需要人在环里判断
+- 每一步的**代价可能很高**（改代码、发消息、花钱）
+- 目标是**赋能人**，不是替代人
+- 例子：编程助手、数据分析工具、写作助手
+
+### 该做 Agent 的场景
+- 任务**目标明确**、**判据清晰**
+- 需要**长时间执行**、人不方便一直盯
+- 单步代价小、可以**试错**
+- 目标是**替代人**处理重复劳动
+- 例子：定时监控、自动运维、爬虫+分析、竞品追踪、CI 自动修复
+
+### 该做混合体的场景（越来越多）
+- 用户交互式启动，agent 后台跑，跑完通知
+- Harness 里嵌 agent 工具（比如"帮我盯着这个 PR，合并了告诉我"）
+- Claude Code 就是这个方向
+
+---
+
+## 七、总结
+
+- **Harness 是骨架，Agent 是肌肉**——骨架没肌肉不会动，肌肉没骨架挂不住
+- **Harness 解决"能不能做"，Agent 解决"能不能自己做"**
+- 两者共享一半技术栈（prompt 工程、工具协议、context 管理），但 agent 要多解决一整类"没有人在旁边"带来的问题（目标、记忆、规划、边界、预算、监控）
+- 现代 agent 系统的最佳实践是**分层**：底下是通用 harness，上面是任务化 agent，中间用 workflow / policy 层黏合。Claude Code 是这个分层思路目前较完整的开源参考实现。

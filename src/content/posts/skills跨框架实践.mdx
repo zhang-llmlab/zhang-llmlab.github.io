@@ -1,0 +1,506 @@
+---
+title: "Skills 跨框架实践：标准化程度与在不同框架中的用法"
+description: "**结论先说**：Skills **不是行业标准**，目前主要是 **Anthropic 生态的约定**（Claude Code、Claude Apps、Agent SDK 都用同一套）。其他框架有各"
+pubDate: 2026-07-10
+updatedDate: 2026-07-10
+tags: ["Agents 开发"]
+category: "Agents 开发"
+draft: false
+---
+# Skills 跨框架实践：标准化程度与在不同框架中的用法
+
+**结论先说**：Skills **不是行业标准**，目前主要是 **Anthropic 生态的约定**（Claude Code、Claude Apps、Agent SDK 都用同一套）。其他框架有各自的"类似物"，但**协议、格式、加载机制都不通用**。
+
+---
+
+## 一、Skills 是不是统一标准？
+
+### 短答：不是。
+
+| 层面               | 现状                                                   |
+| ------------------ | ------------------------------------------------------ |
+| **格式标准** | 只在 Anthropic 生态统一（SKILL.md + YAML frontmatter） |
+| **协议标准** | 没有跨厂商协议（不像 MCP 那样有开放 spec）             |
+| **理念相通** | 各大框架都有"注入方法论/角色/规则"的概念，但实现各异   |
+
+### Anthropic 内部统一
+
+以下产品共享**同一套 Skills 格式**：
+
+- Claude Code CLI
+- Claude Desktop / Claude.ai Apps
+- Claude Agent SDK
+- Anthropic 官方插件系统（Plugins）
+
+**关键格式**：
+
+```
+skill-name/
+├── SKILL.md          # 必需，含 YAML frontmatter
+├── references/       # 可选，L3 层深度文档
+└── scripts/          # 可选，辅助脚本
+```
+
+```yaml
+---
+name: skill-name
+description: 触发描述
+---
+正文...
+```
+
+### 其他框架的"类 Skills"概念
+
+| 框架                        | 类似概念                                  | 差异                               |
+| --------------------------- | ----------------------------------------- | ---------------------------------- |
+| **LangGraph**         | 无原生 skill；可用`nodes` + prompt 模拟 | 需自己实现"元数据 + 按需加载"      |
+| **CrewAI**            | `Agent role` + `Task description`     | 静态注入，无渐进式披露             |
+| **AutoGen**           | `system_message` 每个 agent 一份        | 全量加载，不做延迟                 |
+| **OpenAI Agents SDK** | `instructions` 参数 + `Handoff`       | 手动切换 agent 相当于切换"方法论"  |
+| **LlamaIndex**        | `PromptTemplate` + `Agent Worker`     | 偏向 prompt 工程，非 skill 机制    |
+| **Cursor**            | `.cursorrules` / `.mdc` 规则文件      | 类似 Always-on Memory，非按需      |
+| **Windsurf**          | Cascade Memories / Rules                  | 类似 Cursor                        |
+| **MCP**               | `Prompts` 类型（协议里的一种）          | 更接近 skill，但需 MCP server 分发 |
+
+**唯一比较接近的跨厂商标准是 MCP 的 Prompts** —— 但 MCP Prompts 是"模板化 prompt 片段"，粒度比 skill 小得多。
+
+---
+
+## 二、在 Claude Code 中如何加载使用
+
+### 加载路径（按优先级）
+
+```
+~/.claude/skills/               # 用户级，全局共享
+.claude/skills/                 # 项目级，仅当前项目
+~/.claude/plugins/*/skills/     # 插件分发的 skills
+```
+
+### 触发方式
+
+**1. 隐式触发（模型自主判断）**
+
+```
+用户: "帮我 debug 这个错误"
+  ↓
+模型看到 systematic-debugging 的 description 匹配
+  ↓
+调用 Skill 工具
+```
+
+**2. 显式触发（用户命令）**
+
+```
+用户: /brainstorming
+  ↓
+Harness 直接强制加载对应 skill
+```
+
+**3. 编程触发（在 Agent SDK 里）**
+
+```python
+# Claude Agent SDK
+from anthropic import Anthropic
+
+client = Anthropic()
+response = client.messages.create(
+    model="claude-opus-4-7",
+    system="...",
+    tools=[SKILL_TOOL],  # 注册 Skill 工具
+    messages=[...]
+)
+```
+
+### 完整调用链
+
+```
+1. Claude Code 启动 → 扫描 skills 目录
+2. 构造 system prompt → 注入 skill 列表元数据
+3. 用户发消息 → 模型判断相关 skill
+4. 模型 tool_use: Skill → Harness 读 SKILL.md
+5. tool_result 回填 → 模型按 skill 执行
+```
+
+---
+
+## 三、在 LangGraph 中如何"模拟" Skills
+
+**LangGraph 原生没有 skill 概念**，但可以自己实现。核心是**手工造出 skill 机制的四要素**。
+
+### 方案 1：把 skill 当作一个 Node
+
+```python
+from langgraph.graph import StateGraph
+from langchain_core.tools import tool
+
+# 1. 定义 skill 加载工具
+@tool
+def load_skill(skill_name: str) -> str:
+    """Load a skill's full instructions"""
+    with open(f"./skills/{skill_name}/SKILL.md") as f:
+        return f.read()
+
+# 2. 扫描 skills 目录，构造元数据
+def scan_skills():
+    skills_meta = []
+    for skill_dir in Path("./skills").iterdir():
+        frontmatter = parse_yaml(skill_dir / "SKILL.md")
+        skills_meta.append(f"- {frontmatter['name']}: {frontmatter['description']}")
+    return "\n".join(skills_meta)
+
+# 3. 注入到 system prompt
+SYSTEM_PROMPT = f"""
+You have access to the following skills:
+{scan_skills()}
+
+Use the load_skill tool to load a skill's full content when relevant.
+"""
+
+# 4. 构建图
+graph = StateGraph(State)
+graph.add_node("agent", agent_with_tools(tools=[load_skill], system=SYSTEM_PROMPT))
+graph.add_node("tools", ToolNode([load_skill]))
+graph.add_edge("agent", "tools")
+graph.add_edge("tools", "agent")
+```
+
+**核心思想**：把 Claude Code 的 Harness 逻辑，用 LangGraph 的节点/工具重新实现一遍。
+
+### 方案 2：把 skill 当作 Subgraph 分派
+
+更 LangGraph 风格的做法：**每个 skill 是一个独立 subgraph**，用 router 节点决定跳到哪个。
+
+```python
+def router(state):
+    task = classify(state["user_message"])
+    if task == "debug":
+        return "debugging_subgraph"
+    elif task == "brainstorm":
+        return "brainstorming_subgraph"
+
+graph.add_conditional_edges("router", router, {
+    "debugging_subgraph": "debug_skill",
+    "brainstorming_subgraph": "brainstorm_skill",
+})
+```
+
+**差异**：
+
+- 更结构化，但**失去了 skill 的可插拔性** —— 加新 skill 要改图
+- Claude Code 那种"扫目录自动发现"的能力需要额外实现
+
+### LangGraph vs Claude Code 的本质区别
+
+| 维度         | Claude Code          | LangGraph                 |
+| ------------ | -------------------- | ------------------------- |
+| Skill 是什么 | 文件 + 约定          | 节点 / subgraph           |
+| 加载方式     | Harness 自动扫描注入 | 需自己写 loader           |
+| 触发决策     | 模型自主             | 可自主，也可硬编码 router |
+| 扩展性       | 扔进目录就能用       | 加 skill 常需改图结构     |
+
+---
+
+## 四、在 deepagents 中如何原生使用 Skills
+
+deepagents 是 **LangChain 官方推出的"Claude Code 灵感"框架**，它把 Claude Code 的架构模式（子 agent、文件系统、context 管理、skills）标准化并搬到 LangGraph 生态。**skills 部分几乎照搬了 Claude Code 的思路，但实现细节有明显差异。**
+
+### 1. deepagents 是什么
+
+- **定位**：开源 agent harness，基于 LangGraph，构建在 `create_agent` 之上
+- **理念**：受 Claude Code 启发，抽象出"通用长时程 agent"共性能力
+- **模型无关**：任何支持 tool calling 的 LLM 都能用
+- **核心组件**：Sub-agents、Filesystem、Context Management、Shell、Memory、Human-in-the-loop、**Skills**、Tools
+
+### 2. 遵循 `agentskills.io` 标准
+
+deepagents 的 skills 声称遵循 **Agent Skills 标准**（agentskills.io，社区尝试推行的跨框架规范）。**格式与 Claude Code 高度一致**：
+
+```
+my-skill/
+├── SKILL.md          # 必需，含 YAML frontmatter
+├── scripts/          # 可选
+├── references/       # 可选
+└── assets/           # 可选
+```
+
+### 3. YAML Frontmatter Schema
+
+| 字段              | 必需 | 说明                                           |
+| ----------------- | ---- | ---------------------------------------------- |
+| `name`          | ✅   | 小写字母数字+连字符，1-64 字符，须与目录名一致 |
+| `description`   | ✅   | 做什么、何时用，最多 1024 字符                 |
+| `license`       | ❌   | 许可证                                         |
+| `compatibility` | ❌   | 环境要求，最多 500 字符                        |
+| `metadata`      | ❌   | 任意 key-value                                 |
+| `allowed-tools` | ❌   | 预授权工具（实验性）                           |
+
+**约束**：SKILL.md 必须小于 10MB，否则加载时跳过。
+
+### 4. 核心 API
+
+```python
+from deepagents import create_deep_agent
+from deepagents.backends.filesystem import FilesystemBackend
+
+backend = FilesystemBackend(root_dir="./my-project")
+
+agent = create_deep_agent(
+    model="anthropic:claude-sonnet-4-6",
+    backend=backend,
+    skills=["./my-project/skills/"],   # 关键：skills 参数
+)
+```
+
+`skills` 参数是**路径列表**，多个路径同名 skill 时**后者覆盖前者**（last one wins）。
+
+### 5. 内部机制：SkillsMiddleware
+
+deepagents 用 **中间件（Middleware）** 实现 skills，这是它和 Claude Code 最大的架构差异。
+
+```
+┌─────────────────────────────────────────┐
+│         create_deep_agent               │
+│  ┌───────────────────────────────────┐  │
+│  │      SkillsMiddleware             │  │
+│  │  ├─ 启动扫描 SKILL.md frontmatter │  │
+│  │  ├─ 注入 name + description       │  │
+│  │  │  到 system prompt              │  │
+│  │  └─ 通过 read_file 让模型按需读   │  │
+│  └───────────────────────────────────┘  │
+│  ┌───────────────────────────────────┐  │
+│  │  其他中间件：Filesystem, Subagent │  │
+│  └───────────────────────────────────┘  │
+└─────────────────────────────────────────┘
+```
+
+### 6. 三层渐进式披露（与 Claude Code 一致）
+
+| 层           | 加载内容                     | 时机                     |
+| ------------ | ---------------------------- | ------------------------ |
+| **L1** | name + description           | 启动时注入 system prompt |
+| **L2** | SKILL.md 正文                | 模型判断相关后           |
+| **L3** | scripts/ references/ assets/ | 正文中提到时             |
+
+### 7. 与 Claude Code 的关键差异
+
+#### ⚠️ 差异 1：没有独立的 `Skill` 工具
+
+这是**最重要的差别**。
+
+| 框架                  | 加载 skill 正文的方式                         |
+| --------------------- | --------------------------------------------- |
+| **Claude Code** | 独立的`Skill` 工具 → Harness 特殊处理      |
+| **deepagents**  | 直接用`read_file` 读 SKILL.md → 无特殊工具 |
+
+**含义**：
+
+- deepagents 里 skill 就是一个"特殊布局的文件夹"，模型用文件工具就能加载
+- Claude Code 里 Skill 是一等公民，有专门的调用协议
+- deepagents 的做法**更"文件系统原生"**，Claude Code 的做法**更"仪式化"**
+
+#### 差异 2：Middleware vs Harness
+
+| Claude Code        | deepagents                |
+| ------------------ | ------------------------- |
+| CLI Harness 硬编码 | LangGraph Middleware 组合 |
+| 一体化产品         | 可拆可组的中间件层        |
+
+deepagents 把 skills 做成 `SkillsMiddleware`，你可以：
+
+- 只用 filesystem 不用 skills
+- 自定义中间件替换默认行为
+- 组合到任意 LangGraph 图里
+
+#### 差异 3：Backend 抽象
+
+deepagents 引入 **Backend 概念**，skill 可以存在不同后端：
+
+```python
+FilesystemBackend(root_dir="./project")   # 本地文件
+StateBackend()                            # 内存 / LangGraph State（可 checkpoint）
+StoreBackend()                            # LangGraph Store（跨会话持久化）
+```
+
+Claude Code 里 skill 只能是**磁盘目录**，deepagents 可以放**内存、数据库、远程存储**。
+
+#### 差异 4：Skills vs Memory 分离
+
+deepagents 明确区分两个概念：
+
+| 机制                         | 加载时机            | 用途               |
+| ---------------------------- | ------------------- | ------------------ |
+| **Skills**             | 按需（progressive） | 可复用方法论       |
+| **Memory (AGENTS.md)** | 每次全量加载        | 项目常识、用户偏好 |
+
+对应 Claude Code 的 `SKILL.md` 和 `CLAUDE.md`。
+
+### 8. 完整对比矩阵：Claude Code vs deepagents
+
+| 维度                       | Claude Code                    | deepagents                              |
+| -------------------------- | ------------------------------ | --------------------------------------- |
+| **底层框架**         | 自研 CLI                       | LangGraph + LangChain                   |
+| **Skill 格式**       | SKILL.md + YAML                | SKILL.md + YAML（同标准）               |
+| **加载机制**         | Harness 扫描 + 独立 Skill 工具 | Middleware 扫描 + read_file             |
+| **存储后端**         | 磁盘目录                       | Filesystem / State / Store              |
+| **多路径优先级**     | 项目 > 用户 > 插件             | 后声明覆盖前声明                        |
+| **Frontmatter 字段** | name, description              | + license, compatibility, allowed-tools |
+| **Sub-agent 支持**   | 内置 Agent 工具                | 可传入任意 LangGraph CompiledStateGraph |
+| **可移植性**         | 仅 Claude 生态                 | 任何支持 tool calling 的 LLM            |
+| **可组合性**         | 一体化                         | Middleware 可拔插                       |
+
+### 9. 完整示例
+
+```python
+from deepagents import create_deep_agent
+from deepagents.backends.filesystem import FilesystemBackend
+
+# 1. 准备 skill 目录
+# ./skills/
+#   ├── code-review/
+#   │   ├── SKILL.md
+#   │   └── references/checklist.md
+#   └── debug/
+#       └── SKILL.md
+
+# 2. 配置 backend + skills
+backend = FilesystemBackend(root_dir=".")
+agent = create_deep_agent(
+    model="anthropic:claude-sonnet-4-6",
+    backend=backend,
+    skills=["./skills/"],
+    tools=[my_custom_tool],
+    system_prompt="You are a coding assistant.",
+)
+
+# 3. 运行
+result = agent.invoke({"messages": "帮我 review 这段代码"})
+# 内部流程：
+# - 启动时 SkillsMiddleware 扫描 ./skills/
+# - 注入 code-review 和 debug 的 description
+# - 模型判断 "review 代码" 匹配 code-review skill
+# - 模型调用 read_file("./skills/code-review/SKILL.md")
+# - 按 skill 指引执行，必要时读 references/checklist.md
+```
+
+### 10. deepagents 的意义
+
+它证明了：
+
+1. **Skills 模式是可移植的** —— 只要有 file system + tool calling，就能实现
+2. **Middleware 化更灵活** —— 可以拆解、组合、替换
+3. **Backend 抽象更强大** —— skill 不必绑定本地磁盘
+4. **agentskills.io 有望成为跨框架标准** —— 至少 deepagents 和 Claude Code 已经对齐
+
+### 11. 什么时候选 deepagents？
+
+| 场景                          | 选择        |
+| ----------------------------- | ----------- |
+| Claude 生态一站式             | Claude Code |
+| 想在 LangGraph 里搭 agent     | deepagents  |
+| 需要多模型（GPT/Gemini/开源） | deepagents  |
+| 需要自定义 middleware 组合    | deepagents  |
+| 需要 skill 存在远程 backend   | deepagents  |
+| 想要"扔目录就能跑"的开发体验  | Claude Code |
+
+**参考资料：**
+
+- [langchain-ai/deepagents](https://github.com/langchain-ai/deepagents)
+- [deepagents Overview](https://docs.langchain.com/oss/python/deepagents/overview)
+- [deepagents Skills API](https://docs.langchain.com/oss/python/deepagents/skills)
+
+---
+
+## 五、在 Subagents 中如何使用 Skills
+
+### Claude Code 的 Subagent 机制
+
+Subagent 通过 `Agent` 工具启动，**独立上下文，但共享 Harness 环境**：
+
+```
+主 Agent
+  └─ Agent(subagent_type="Explore", prompt="...")
+       ├─ 独立 system prompt
+       ├─ 独立对话历史
+       └─ 但仍能看到 skill 列表 ← 关键
+```
+
+### Subagent 能不能用 Skills？
+
+**能。** 只要 Harness 给它注入了 skill 元数据、暴露了 Skill 工具，它的机制和主 Agent 完全一样。
+
+### 但有个隐患：递归触发
+
+看 `using-superpowers` skill 的开头：
+
+```markdown
+<SUBAGENT-STOP>
+If you were dispatched as a subagent to execute a specific task, ignore this skill.
+</SUBAGENT-STOP>
+```
+
+**为什么要加这段？** 因为：
+
+1. Subagent 也会看到 `using-superpowers` skill
+2. 如果不忽略，subagent 会再去调用其他 skill
+3. 那些 skill 里可能又要求"派发 subagent"→ 无限套娃
+
+**Skills 在 subagent 中的最佳实践：**
+
+- 明确标注"哪些 skill 只主 agent 用"
+- 明确标注"哪些 skill 子任务专用"
+- 在 skill 正文里加 `<SUBAGENT-STOP>` 或 `<MAIN-ONLY>` 标记
+
+### 三种 Subagent 场景
+
+| 场景                                         | Skill 加载                                      |
+| -------------------------------------------- | ----------------------------------------------- |
+| **通用 Explore agent**                 | 看到全部 skill，可自主调用                      |
+| **专用类型 agent（如 code-reviewer）** | 通常已通过 agent 定义预设了方法论，skill 可忽略 |
+| **自定义 subagent（agentType 参数）**  | 由 Harness 决定 skill 可见性                    |
+
+---
+
+## 六、跨框架能力矩阵
+
+| 能力                | Claude Code | deepagents         | LangGraph | CrewAI       | AutoGen | OpenAI SDK    |
+| ------------------- | ----------- | ------------------ | --------- | ------------ | ------- | ------------- |
+| 原生 skill 概念     | ✅          | ✅                 | ❌        | 部分（role） | ❌      | ❌            |
+| 元数据 + 按需加载   | ✅          | ✅                 | 需自建    | ❌           | ❌      | ❌            |
+| 模型自主触发        | ✅          | ✅                 | 需自建    | ❌           | ✅      | ✅            |
+| 目录扫描自动发现    | ✅          | ✅                 | 需自建    | ❌           | ❌      | ❌            |
+| Subagent 共享 skill | ✅          | ✅                 | 需自建    | ❌           | ❌      | ✅（handoff） |
+| 独立 Skill 工具     | ✅          | ❌（用 read_file） | ❌        | ❌           | ❌      | ❌            |
+| 多存储 backend      | ❌          | ✅                 | ❌        | ❌           | ❌      | ❌            |
+| 跨厂商可移植        | ❌          | ✅（模型无关）     | ❌        | ❌           | ❌      | ❌            |
+
+---
+
+## 七、要不要"标准化" Skills？
+
+**社区讨论中的方向：**
+
+1. **MCP 扩展支持 Skill 类型** —— 让 skill 通过 MCP server 分发（有提案，未落地）
+2. **Skill 文件格式事实标准化** —— SKILL.md + YAML frontmatter 正在被 Cursor、Windsurf 等借鉴
+3. **Skill Registry 平台** —— 类似 npm，让 skill 可以像包一样发布/安装
+
+**目前现实：**
+
+- 想用标准化 skill 体验 → 用 Claude Code / Anthropic 生态
+- 想在其他框架用 → 自己实现"元数据 + 加载 + 触发"三件套
+- 想跨框架分享方法论 → 只能靠**纯文本 markdown**（人肉复制）
+
+---
+
+## 八、一句话总结
+
+> **Skills 目前是 Anthropic 生态的事实约定，不是行业标准。**
+> Claude Code 里"开箱即用"，LangGraph / 自研 Agent 里需要手工实现"扫描 + 注入 + 工具"三件套。
+> Subagent 默认继承 skill 环境，但要防止递归触发（用 `<SUBAGENT-STOP>` 之类的标记）。
+
+---
+
+## 相关文档
+
+- [[03-skills原理]] —— Skills 的基本原理与分层结构
+- [[04-skills使用]] —— Skills 的自动加载与 Harness 机制
+- [[02-agent开发框架]] —— 主流 Agent 框架全景

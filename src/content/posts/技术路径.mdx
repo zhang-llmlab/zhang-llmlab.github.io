@@ -1,0 +1,245 @@
+---
+title: "基于 AI Agent 的 CATIA 自动化建模 —— 技术路径"
+description: "通过与 AI Agent 对话,实现:"
+pubDate: 2026-07-10
+updatedDate: 2026-07-10
+tags: ["工程实践"]
+category: "工程实践"
+draft: false
+---
+# 基于 AI Agent 的 CATIA 自动化建模 —— 技术路径
+
+## 1. 目标
+
+通过与 AI Agent 对话,实现:
+
+- 自然语言驱动的 CATIA / 3DEXPERIENCE 建模
+- 参数化零件与变体设计的自动生成
+- 批量修改、批量导出等重复性工作自动化
+- 从需求描述到初版模型骨架的快速产出
+
+## 2. 为什么不走 Computer Use(GUI 操作)路线
+
+理论上 Claude 的 Computer Use 可以看截图 + 点鼠标 + 敲键盘操作 CATIA,但在 CAD 场景下几乎不可行:
+
+1. **3D 视口是连续交互**:旋转/平移/选面/选边依赖鼠标拖拽和精准 hover,离散的「截图 → 决策」循环无法胜任。
+2. **图标密集且无文本标签**:CATIA 工具栏识别错误率极高。
+3. **上下文菜单、Compass 罗盘**依赖精准坐标与时序。
+4. **成本爆炸**:一个稍复杂零件几百步操作,每步截图,token 成本不划算。
+5. **一步错、全流程崩**:GUI Agent 缺乏事务回滚机制。
+
+**结论**:GUI 路线只能做 demo,不能承担真实建模。应走 **API 调用** 路线。
+
+## 3. 推荐架构
+
+```
+用户对话
+   ↓
+Claude (Agent)         ← LLM 负责语义理解、任务规划、参数推断
+   ↓  (tool use / MCP)
+封装好的 CATIA 工具层    ← 我们自己写的原子操作 + 高层组合
+   ↓
+CATIA Automation API   ← VBA / COM / Python win32com / EKL / CAA
+   ↓
+CATIA V5 / 3DEXPERIENCE
+```
+
+**核心原则**:**LLM 只做意图翻译,不直接操作几何**。所有几何操作走确定性的工具层。
+
+## 4. 两种落地方式
+
+### 方式 A:预封装工具集(推荐,可控性高)
+
+把常用建模动作封装成一组「原子工具」,通过 Claude tool use 或 MCP Server 暴露给 Agent。
+
+示例工具集:
+
+```python
+# Part / Body
+create_part(name)
+create_body(part, name)
+
+# Sketch
+create_sketch(plane, name)
+add_rectangle(sketch, width, height, center)
+add_circle(sketch, radius, center)
+add_line(sketch, p1, p2)
+add_constraint(sketch, entity1, entity2, type)
+
+# Feature
+pad(sketch, length, direction)
+pocket(sketch, depth)
+revolve(sketch, axis, angle)
+fillet(edges, radius)
+chamfer(edges, distance)
+create_hole(face, diameter, depth, position)
+pattern_linear(feature, count, spacing, direction)
+pattern_circular(feature, count, axis)
+mirror(feature, plane)
+
+# Assembly
+insert_component(product, part_path)
+add_mate(comp1, comp2, type)
+
+# I/O
+save_as(path)
+export_step(path)
+export_iges(path)
+
+# Query
+list_features(part)
+measure(entity1, entity2)
+get_bounding_box(part)
+```
+
+**对话示例**:
+
+> 用户:"帮我做一个 100×50×20 的板,四个角各打一个直径 5 的通孔,离边 10。"
+>
+> Agent 调用序列:
+> `create_part("plate")`
+> → `create_sketch(XY_plane)`
+> → `add_rectangle(100, 50, center=(0,0))`
+> → `pad(sketch, 20)`
+> → `create_hole(top_face, 5, through=True, (10, 10))` × 4
+> → `save_as(...)`
+
+**优点**:确定性强、失败可定位、token 消耗低、体验流畅。
+**缺点**:能力受工具集覆盖度限制。
+
+### 方式 B:Agent 生成脚本再执行
+
+让 Claude 直接生成 VBA / CATScript / Python COM 代码,由执行器投递到 CATIA。
+
+**优点**:表达力强(循环、条件、参数化)、能处理长尾需求。
+**缺点**:LLM 对 CATIA API 细节(对象层级、异常)容易写错,需迭代调试。
+
+### 混合策略(实际推荐)
+
+- **常见操作 → 方式 A**(稳、快、便宜)
+- **长尾/复杂逻辑 → 方式 B**(灵活)
+- Agent 根据任务复杂度自主选择
+
+## 5. 关键技术点
+
+### 5.1 通信层
+
+| 场景                      | 推荐方案                                                  |
+| ------------------------- | --------------------------------------------------------- |
+| CATIA V5 (Windows)        | Python +`win32com.client.Dispatch("CATIA.Application")` |
+| 3DEXPERIENCE (本地)       | 同上,或 EKL                                               |
+| 3DEXPERIENCE (Web/PLM 侧) | REST API / 3DEXPERIENCE Web Services                      |
+| 深度定制                  | CAA C++ SDK(门槛高)                                       |
+
+### 5.2 工具协议
+
+用 **MCP (Model Context Protocol) Server** 封装 CATIA 工具:
+
+- 一次封装,Claude Desktop / Claude Code / API 均可复用
+- 天然支持 tool use 描述、参数校验、错误回传
+- 生态里已有 Blender-MCP、Fusion360-MCP,可参照
+
+### 5.3 状态回传
+
+每次操作后回传给 Agent:
+
+- 当前 Part 的 feature tree(简化 JSON)
+- 报错信息(异常类型 + 消息)
+- 关键几何度量(bounding box、体积)
+
+让 Agent 具备自我纠错能力。
+
+### 5.4 参数化优先
+
+优先在 CATIA 里创建 **Parameters** 和 **Formulas**,而非硬编码尺寸:
+
+- 后续可通过 `set_parameter(name, value)` 调整
+- 支持变体设计和族件
+- 复用性大幅提升
+
+### 5.5 人在回路(Human-in-the-loop)
+
+关键节点强制用户确认:
+
+- 保存 / 覆盖已有文件
+- 发布到 PLM
+- 大规模批量操作前
+- 生成脚本的首次执行
+
+### 5.6 错误恢复
+
+CATIA 常见错误:
+
+- 约束冲突
+- 面/边选择失败(引用失效)
+- Feature 更新失败
+
+策略:
+
+- 拿到具体错误消息 → Agent 分析 → 重试或换策略
+- 每个 Feature 操作前设 checkpoint(可 undo)
+- 失败时提供 rollback 工具
+
+## 6. 能力边界
+
+### 做得好的场景
+
+- 参数化标准件(法兰、支架、板件、齿轮、螺栓孔阵列)
+- 基于模板的变体设计
+- 批量修改、批量导出(STEP/IGES/PDF)
+- 简单装配自动化(标准配合)
+- 从需求描述生成初版模型骨架
+- 工程 BOM 提取、参数报表
+
+### 做不好的场景
+
+- 复杂自由曲面(需视觉判断)
+- 需要工程直觉的结构优化
+- 复杂装配的空间避让、配合关系推理
+- 需要看 3D 视图才能决策的操作(如"把这个面倒圆")—— 需要用户明确指定引用
+
+## 7. 分阶段实施路线
+
+### Phase 0:可行性验证(1 周)
+
+- 用 Python + pywin32 打通 CATIA V5 COM 接口
+- 手写 3-5 个原子工具(create_part / add_rectangle / pad / save_as)
+- 验证脚本能稳定执行
+
+### Phase 1:MCP Server MVP(2 周)
+
+- 封装 15-20 个高频原子工具
+- 搭最小 MCP Server,接入 Claude Desktop
+- 完成 3-5 个 demo:参数化板、法兰、L 型支架
+
+### Phase 2:能力扩展(4 周)
+
+- 补齐草图约束、Pattern、Assembly 工具
+- 加入状态回传与错误恢复
+- 加入方式 B(脚本生成 + 执行器)
+
+### Phase 3:工程化(持续)
+
+- 模板库(常用零件族)
+- 与 PLM/PDM 集成
+- 批量任务队列
+- 用户权限与审计日志
+
+## 8. 参考与借鉴
+
+- **CadQuery / build123d**:Python 参数化 CAD,已有丰富的 LLM 生成建模脚本案例。可先在这类开源工具上验证整个 pipeline,再迁移到 CATIA。
+- **Blender-MCP / Fusion360-MCP**:MCP + 3D 软件的成熟范式,架构可直接借鉴。
+- **Dassault 官方 CATIA AI Assistant**:方向一致,验证了工业界的认可。
+- **CATIA VBA 宏文档 / CAA 文档**:自动化 API 参考。
+
+## 9. 风险与注意事项
+
+1. **CATIA COM 只在 Windows 上可用**,Linux 环境需通过远程调用(RPC/HTTP 桥)。
+2. **3DEXPERIENCE 的 API 权限**:企业版需与 IT / PLM 管理员协调授权。
+3. **版本兼容性**:CATIA 各版本 API 有差异,需版本适配层。
+4. **并发限制**:CATIA 单实例通常不支持并发操作,批量任务需队列化。
+5. **数据安全**:图纸、模型属敏感数据,MCP Server 应本地部署,不要将模型内容上传给云 LLM(可只传结构化操作指令 + 状态)。
+
+## 10. 一句话总结
+
+**别让 LLM 去点 CATIA 的按钮,让它去调用你封装好的工具。** 架构上把「语义理解」和「几何执行」解耦,用 MCP 做桥梁,是目前最靠谱、可扩展的路径。
