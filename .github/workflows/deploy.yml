@@ -31,6 +31,12 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Type-check content collections
+        run: npx astro check
+
+      - name: Lint content
+        run: node scripts/lint-content.mjs
+
       - name: Build Astro and Pagefind index
         run: npm run build
 
