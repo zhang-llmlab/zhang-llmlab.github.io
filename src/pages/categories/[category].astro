@@ -12,12 +12,13 @@ export async function getStaticPaths() {
   });
 
   return Array.from(categories).map((category) => ({
-    params: { category: encodeURIComponent(category) }
+    params: { category }
   }));
 }
 
-// 分类名里可能含「/」（如 AI/Agent）；必须整段编码，否则会被当成多段路径导致构建失败。
-const category = decodeURIComponent(Astro.params.category ?? "");
+// Astro 会自动对 params 里的非 ASCII 字符做 URL 编码，浏览器同理。
+// 约束：category 值不得含 "/"，否则会被当成多段路径 —— posts 的 enum 已保证，projects 添加新 category 时需注意。
+const category = Astro.params.category ?? "";
 const posts = (await getCollection("posts")).filter(
   (item) => !item.data.draft && item.data.category === category
 );
