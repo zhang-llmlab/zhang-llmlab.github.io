@@ -183,7 +183,7 @@ print(result)
 
 下图示意：**`OverallState`** 继承 **`InputState`** 与 **`OutputState`**，节点可仍按整体状态读写，而 **`invoke`** 入参、返回值受 Schema 约束。
 
-![输入输出状态与 OverallState 关系示意](./langgraph-02-Graph%20API/langgraph-02-Graph%20API_img_2026-04-05-17-06-10.png)
+![输入输出状态与 OverallState 关系示意](./02-graph-api/langgraph-02-Graph%20API_img_2026-04-05-17-06-10.png)
 
 ```python
 """
@@ -230,7 +230,7 @@ if __name__ == "__main__":
 
 下图描述一种常见模式：**某些键只在部分节点之间有意义**，但仍需进入 **全局 `OverallState`** 才能在边上传下去（LangGraph 不会在图外替你维护一套隐形 RAM；可持久化的仍是 **state + checkpointer** 所见的字段）。
 
-![私有字段在 OverallState 中的传递示意](./langgraph-02-Graph%20API/langgraph-02-Graph%20API_img_2026-04-05-17-07-30.png)
+![私有字段在 OverallState 中的传递示意](./02-graph-api/langgraph-02-Graph%20API_img_2026-04-05-17-07-30.png)
 
 实践上请记住：
 

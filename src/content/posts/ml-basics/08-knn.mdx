@@ -29,7 +29,7 @@ KNN 属于 **懒惰学习（Lazy Learning）** 与 **基于实例的学习（Ins
 
 以二分类问题为例，假设特征空间中已有若干红色（类 A）与蓝色（类 B）样本，现在要对一个新样本（绿色三角形）进行分类：
 
-![KNN 直观示意](./KNN算法原理/knn-intuition.svg)
+![KNN 直观示意](./08-knn/knn-intuition.svg)
 
 **判断过程**：
 
@@ -43,7 +43,7 @@ KNN 属于 **懒惰学习（Lazy Learning）** 与 **基于实例的学习（Ins
 
 ## 三、算法流程
 
-![KNN 流程](./KNN算法原理/knn-workflow.svg)
+![KNN 流程](./08-knn/knn-workflow.svg)
 
 形式化描述如下：
 
@@ -63,7 +63,7 @@ KNN 属于 **懒惰学习（Lazy Learning）** 与 **基于实例的学习（Ins
 
 距离度量决定了"什么样的样本算是相似"，是 KNN 的关键组成部分。
 
-![常见距离度量](./KNN算法原理/knn-distance.svg)
+![常见距离度量](./08-knn/knn-distance.svg)
 
 ### 1. 欧氏距离（Euclidean Distance）
 
@@ -107,7 +107,7 @@ $$\cos(\theta) = \frac{x \cdot y}{\|x\| \cdot \|y\|}$$
 
 K 值直接影响模型的复杂度与决策边界的形状：
 
-![不同 K 值的影响](./KNN算法原理/knn-k-effect.svg)
+![不同 K 值的影响](./08-knn/knn-k-effect.svg)
 
 | K 值大小 | 特点 | 风险 |
 |---------|------|------|

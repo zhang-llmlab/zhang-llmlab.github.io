@@ -96,7 +96,7 @@ Python 侧可理解为二元归约：
 
 若某键在初始 **`invoke` 输入** 中已有值，而后续节点未返回该键，则该键 **保持不变**。若节点返回了新键，则 **并入** **State**（这是「返回字典里有什么键」层面的合并，与 **Reducer** 的「同键如何合并」是两层概念）。
 
-![](./langgraph-03-Reducer/langgraph-03-Reducer_img_2026-04-05-23-35-45.png)
+![](./03-reducer/langgraph-03-Reducer_img_2026-04-05-23-35-45.png)
 
 ```python
 """
@@ -142,7 +142,7 @@ if __name__ == "__main__":
 
 专门用于 **消息列表**：使用 **`add_messages`** 后，条目会按 LangChain **消息** 语义处理（如 **`HumanMessage`**、**`AIMessage`** 等）。
 
-![](./langgraph-03-Reducer/langgraph-03-Reducer_img_2026-04-05-23-38-20.png)
+![](./03-reducer/langgraph-03-Reducer_img_2026-04-05-23-38-20.png)
 
 ```python
 """
@@ -192,7 +192,7 @@ if __name__ == "__main__":
 
 ### 列表追加
 
-![](./langgraph-03-Reducer/langgraph-03-Reducer_img_2026-04-05-23-42-20.png)
+![](./03-reducer/langgraph-03-Reducer_img_2026-04-05-23-42-20.png)
 
 ```python
 """
@@ -235,7 +235,7 @@ if __name__ == "__main__":
 
 ### 字符串拼接
 
-![](./langgraph-03-Reducer/langgraph-03-Reducer_img_2026-04-05-23-43-54.png)
+![](./03-reducer/langgraph-03-Reducer_img_2026-04-05-23-43-54.png)
 
 ```python
 """
@@ -278,7 +278,7 @@ if __name__ == "__main__":
 
 ### 数值累加
 
-![](./langgraph-03-Reducer/langgraph-03-Reducer_img_2026-04-05-23-44-35.png)
+![](./03-reducer/langgraph-03-Reducer_img_2026-04-05-23-44-35.png)
 
 ```python
 """
@@ -364,7 +364,7 @@ if __name__ == "__main__":
 
 合并逻辑完全由你实现，例如 **字典浅合并**（新键覆盖旧键同名字段）：
 
-![](./langgraph-03-Reducer/langgraph-03-Reducer_img_2026-04-05-23-45-47.png)
+![](./03-reducer/langgraph-03-Reducer_img_2026-04-05-23-45-47.png)
 
 ```python
 """

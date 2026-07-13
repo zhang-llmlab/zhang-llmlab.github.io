@@ -70,7 +70,7 @@ draft: false
 
 **普通边**表示 **固定跳转**：不根据运行时状态改道，只把 **有向边** 从 **源节点** 连到 **目标节点**。图 **开始** 与 **结束** 常写作 **`add_edge(START, ...)`** 与 **`add_edge(..., END)`**。
 
-![](./langgraph-05-Edges/langgraph-05-Edges_img_2026-04-06-10-31-11.png)
+![](./05-edges/langgraph-05-Edges_img_2026-04-06-10-31-11.png)
 
 ```python
 """
@@ -141,7 +141,7 @@ if __name__ == "__main__":
 - 若提供 **`path_map`**：返回值作为 **键**，查到 **真实节点名**（适合返回值用 **枚举别名**、节点名较长等情况）。
 - 若省略 **`path_map`**（部分版本 / 用法）：返回值应直接是 **下一节点名称** 或 **`END`**（以当前 **LangGraph** 版本文档为准）。
 
-![](./langgraph-05-Edges/langgraph-05-Edges_img_2026-04-06-10-33-25.png)
+![](./05-edges/langgraph-05-Edges_img_2026-04-06-10-33-25.png)
 
 ```python
 """
@@ -236,7 +236,7 @@ if __name__ == "__main__":
 
 **入口点**解决的是：**第一次** 从图外进入时，先跑哪个节点。最常见写法是 **`add_edge(START, "your_first_node")`**，与 **普通边** 一致，只是 **源** 固定为 **`START`**。
 
-![](./langgraph-05-Edges/langgraph-05-Edges_img_2026-04-06-10-36-26.png)
+![](./05-edges/langgraph-05-Edges_img_2026-04-06-10-36-26.png)
 
 ```python
 """
@@ -298,7 +298,7 @@ if __name__ == "__main__":
 
 **条件入口**把 **「第一步走哪」** 也交给 **路由函数**：对 **`START`** 使用 **`add_conditional_edges`**，在 **首次调度** 时根据 **输入状态** 选择 **node_a**、**node_d** 等不同起点，再汇合到后续公共节点（本例中 **`node_b`**）。
 
-![](./langgraph-05-Edges/langgraph-05-Edges_img_2026-04-06-10-38-08.png)
+![](./05-edges/langgraph-05-Edges_img_2026-04-06-10-38-08.png)
 
 ```python
 """
@@ -395,7 +395,7 @@ if __name__ == "__main__":
 
 > **构图提示**：典型环模式可记为 **`a` → 条件边 →（继续则）`b` → `a`**，直到条件满足走到 **`END`**。务必区分 **「路由回 `a`」** 与 **「误把无条件边连成死环」**。
 
-![](./langgraph-05-Edges/langgraph-05-Edges_img_2026-04-06-10-40-18.png)
+![](./05-edges/langgraph-05-Edges_img_2026-04-06-10-40-18.png)
 
 ```python
 from typing import Literal
