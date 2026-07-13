@@ -42,7 +42,7 @@ draft: false
 
 > 读前提示（LangGraph / LangChain 应用视角）
 >
-> - **适合人群**：已了解 [Graph API 与 State](/posts/langgraph-02-graph-api)、[Reducer 与状态合并](/posts/langgraph-03-reducer)，准备在真实工作流里为 **节点** 配置缓存、重试与并行语义的读者。
+> - **适合人群**：已了解 [Graph API 与 State](/posts/langgraph/02-graph-api)、[Reducer 与状态合并](/posts/langgraph/03-reducer)，准备在真实工作流里为 **节点** 配置缓存、重试与并行语义的读者。
 > - **前置知识**：**`StateGraph.add_node`**、**`invoke` / `stream`**；对 **TypedDict** 状态与 **Reducer**（如 **`operator.add`**）有基本概念更佳。
 > - **读完收获**：能正确使用 **`CachePolicy` / `InMemoryCache`**、**`RetryPolicy`**；理解 **`defer=True`** 与 **多入边** 下节点触发次数的差异；会用 **`Send`** 做动态并行，并区分 **静态扇出** 与 **Send 动态扇出**；建立 **超步（superstep）** 调度直觉。
 

@@ -41,7 +41,7 @@ draft: false
 
 > 读前提示（LangGraph / LangChain 应用视角）
 >
-> - **适合人群**：已了解 [Graph API 与 State](/posts/langgraph-02-graph-api)、[Reducer 与状态合并](/posts/langgraph-03-reducer)、[节点与并行语义](/posts/langgraph-04-nodes)，准备系统梳理 **边** 与 **路由** 的读者。
+> - **适合人群**：已了解 [Graph API 与 State](/posts/langgraph/02-graph-api)、[Reducer 与状态合并](/posts/langgraph/03-reducer)、[节点与并行语义](/posts/langgraph/04-nodes)，准备系统梳理 **边** 与 **路由** 的读者。
 > - **前置知识**：**`StateGraph`**、**`add_node`**、**`invoke`**；理解 **`START` / `END`** 为特殊节点；对 **超步（superstep）** 有印象则更易读懂「多出路并行」。
 > - **读完收获**：能正确使用 **`add_edge`** 与 **`add_conditional_edges`**；会配置 **普通入口** 与 **条件入口**；理解 **同一节点多条出边** 时的调度直觉；能为 **循环图** 设计 **终止条件**，并知道 **`recursion_limit`** 与 **`GraphRecursionError`** 的用途。
 
@@ -62,7 +62,7 @@ draft: false
 
 ## 1.1 同一节点的多条出边与超步
 
-若 **同一个节点** 上注册了 **多条出边**（例如 **静态扇出** 到多个下游），这些 **目标节点** 通常会在 **下一个超步（superstep）** 内被 **一并调度**，效果上接近 **并行执行**（与 [节点篇](/posts/langgraph-04-nodes) 中 **Send** 等 **动态扇出** 可对照理解）。实际合并顺序仍受 **State** 与 **Reducer** 约束。
+若 **同一个节点** 上注册了 **多条出边**（例如 **静态扇出** 到多个下游），这些 **目标节点** 通常会在 **下一个超步（superstep）** 内被 **一并调度**，效果上接近 **并行执行**（与 [节点篇](/posts/langgraph/04-nodes) 中 **Send** 等 **动态扇出** 可对照理解）。实际合并顺序仍受 **State** 与 **Reducer** 约束。
 
 ---
 

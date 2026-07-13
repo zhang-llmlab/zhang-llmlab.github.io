@@ -40,7 +40,7 @@ draft: false
 
 > 读前提示（LangGraph / LangChain 应用视角）
 >
-> - **适合人群**：已了解 [Graph API 与 State](/posts/langgraph-02-graph-api)、[Reducer](/posts/langgraph-03-reducer)、[节点](/posts/langgraph-04-nodes)、[边](/posts/langgraph-05-edges)，希望用 **短代码** 巩固直觉的读者。
+> - **适合人群**：已了解 [Graph API 与 State](/posts/langgraph/02-graph-api)、[Reducer](/posts/langgraph/03-reducer)、[节点](/posts/langgraph/04-nodes)、[边](/posts/langgraph/05-edges)，希望用 **短代码** 巩固直觉的读者。
 > - **前置知识**：**`StateGraph`**、**`add_node` / `add_edge`**、**`invoke`**；**`START` / `END`**；题二需对 **超步（superstep）** 与 **`defer=True`** 有印象（见节点篇）。
 > - **读完收获**：能独立搭一条 **START → 计算 → 输出 → END** 的线性图；会用 **`defer=True`** 让 **多前驱节点** 在合适时机 **只汇聚执行一次**，并从打印时间戳 **看出延迟效果**。
 > - **说明**：底层仍是 **合并后的全局 `State`**；文中「按字段传递」指 **各节点只读写的键不同**、用 **返回值做部分更新**，而不是进程间私有内存。

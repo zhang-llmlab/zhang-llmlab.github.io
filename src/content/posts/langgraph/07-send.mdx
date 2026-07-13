@@ -39,9 +39,9 @@ draft: false
 
 > 读前提示（LangGraph / LangChain 应用视角）
 >
-> - **适合人群**：已了解 [Graph API 与 State](/posts/langgraph-02-graph-api)、[Reducer](/posts/langgraph-03-reducer)、[节点与 Send 并行概要](/posts/langgraph-04-nodes)，希望把 **`Send`** 从「听说过」落到 **可运行代码** 的读者。
+> - **适合人群**：已了解 [Graph API 与 State](/posts/langgraph/02-graph-api)、[Reducer](/posts/langgraph/03-reducer)、[节点与 Send 并行概要](/posts/langgraph/04-nodes)，希望把 **`Send`** 从「听说过」落到 **可运行代码** 的读者。
 > - **前置知识**：**`StateGraph`**、**`add_conditional_edges`**、**`Annotated[..., operator.add]`**；理解 **条件边路由函数** 可以返回 **下一跳节点名** 或 **`Send` 列表**。
-> - **读完收获**：能写出 **`return [Send("worker", {...}), ...]`** 的 **Map 阶段**；知道 **子任务状态** 如何与 **全局 State** 合并；会用 **Reducer** 把并行 **`jokes`** 等字段 **顺序归并**；能对照 [节点篇 §5](/posts/langgraph-04-nodes#5-并行分发send-与-reducer-合并顺序) 的 **`Send` vs 静态扇出** 表。
+> - **读完收获**：能写出 **`return [Send("worker", {...}), ...]`** 的 **Map 阶段**；知道 **子任务状态** 如何与 **全局 State** 合并；会用 **Reducer** 把并行 **`jokes`** 等字段 **顺序归并**；能对照 [节点篇 §5](/posts/langgraph/04-nodes#5-并行分发send-与-reducer-合并顺序) 的 **`Send` vs 静态扇出** 表。
 
 # 1 `Send` 在 LangGraph 中的作用
 
@@ -79,7 +79,7 @@ Send(target_node: str, arg: dict)
 ## 2.3 执行与合并（直觉）
 
 - 在 **条件边（或 `START` 上的条件路由）** 的函数里，根据 **全局状态** 生成 **`List[Send]`**。
-- 引擎对列表中 **每个 `Send`** **并行** 调用对应节点（**完成先后不保证**，与 [节点篇](/posts/langgraph-04-nodes) 一致）。
+- 引擎对列表中 **每个 `Send`** **并行** 调用对应节点（**完成先后不保证**，与 [节点篇](/posts/langgraph/04-nodes) 一致）。
 - 各节点返回的 **部分状态更新** 中，需要 **并行合并** 的字段应在 **`TypedDict`** 里用 **`Annotated[..., operator.add]`**（或其它 **Reducer**）声明，否则易冲突或覆盖。
 
 # 3 示例：按主题列表并行生成内容
