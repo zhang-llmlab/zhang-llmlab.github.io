@@ -22,7 +22,7 @@ async function walk(dir) {
 }
 
 function parseFrontmatter(src) {
-  const m = src.match(/^---\n([\s\S]*?)\n---/);
+  const m = src.match(/^\s*---\r?\n([\s\S]*?)\r?\n---/);
   if (!m) return null;
   const fm = {};
   for (const line of m[1].split("\n")) {
