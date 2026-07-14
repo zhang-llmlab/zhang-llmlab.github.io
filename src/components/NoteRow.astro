@@ -1,0 +1,146 @@
+---
+import { excerpt } from "../lib/text";
+import { seriesTitle } from "../lib/series-meta";
+
+interface Props {
+  slug: string;
+  title: string;
+  description?: string;
+  pubDate: Date;
+  category?: string;
+  series?: string;
+  seriesOrder?: number;
+  tags?: string[];
+  variant?: "index" | "detail";
+}
+
+const {
+  slug,
+  title,
+  description,
+  pubDate,
+  series,
+  seriesOrder,
+  tags = [],
+  variant = "index"
+} = Astro.props;
+
+function formatYmd(d: Date) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+const orderLabel = seriesOrder != null ? String(seriesOrder).padStart(2, "0") : "";
+const seriesBadge = series ? `${series}·${orderLabel || ""}`.replace(/·$/, "") : "";
+const excerptText = excerpt(description, variant === "detail" ? 180 : 120);
+const displayTags = tags.slice(0, 3);
+---
+
+<a class="note-row" href={`/posts/${slug}`}>
+  <div class="note-row__col-left">
+    <time class="note-row__date" datetime={pubDate.toISOString()}>{formatYmd(pubDate)}</time>
+  </div>
+  <div class="note-row__col-right">
+    <div class="note-row__head">
+      <h3 class="note-row__title">{title}</h3>
+      {seriesBadge && (
+        <span class="note-row__series" aria-label={`专题 ${seriesTitle(series)} 第 ${orderLabel} 篇`}>
+          {series}<span class="note-row__series-sep">·</span>{orderLabel}
+        </span>
+      )}
+    </div>
+    {excerptText && <p class="note-row__excerpt">{excerptText}</p>}
+    {displayTags.length > 0 && (
+      <div class="note-row__tags">
+        {displayTags.map((t) => <span class="tag-chip">{t}</span>)}
+      </div>
+    )}
+  </div>
+</a>
+
+<style>
+  .note-row {
+    display: grid;
+    grid-template-columns: 6.5rem 1fr;
+    gap: var(--sp-4);
+    padding: var(--sp-4) 0;
+    color: inherit;
+    text-decoration: none;
+    transition: color 0.15s ease;
+  }
+  .note-row + .note-row {
+    border-top: 1px solid var(--line);
+  }
+  .note-row:focus-visible {
+    outline: 2px solid var(--link);
+    outline-offset: 4px;
+    border-radius: 4px;
+  }
+  .note-row__date {
+    font-family: var(--font-mono);
+    font-size: var(--fs-sm);
+    color: var(--ink-mute);
+    font-variant-numeric: tabular-nums;
+  }
+  .note-row__head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--sp-3);
+    margin-bottom: var(--sp-2);
+  }
+  .note-row__title {
+    margin: 0;
+    font-size: var(--fs-base);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    line-height: 1.4;
+    color: var(--ink);
+    text-wrap: balance;
+    transition: color 0.15s ease;
+  }
+  .note-row:hover .note-row__title {
+    color: var(--accent);
+  }
+  .note-row__series {
+    flex-shrink: 0;
+    font-family: var(--font-mono);
+    font-size: var(--fs-xs);
+    color: var(--ink-mute);
+    white-space: nowrap;
+  }
+  .note-row__series-sep {
+    color: var(--accent);
+    margin: 0 1px;
+  }
+  .note-row__excerpt {
+    margin: 0 0 var(--sp-2);
+    font-size: var(--fs-sm);
+    line-height: 1.55;
+    color: var(--ink-soft);
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+  }
+  .note-row[data-variant="detail"] .note-row__excerpt,
+  .note-row__excerpt[data-variant="detail"] {
+    -webkit-line-clamp: 2;
+  }
+  .note-row__tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-2);
+  }
+  @media (max-width: 560px) {
+    .note-row {
+      grid-template-columns: 1fr;
+      gap: var(--sp-1);
+    }
+    .note-row__head {
+      flex-wrap: wrap;
+    }
+  }
+</style>

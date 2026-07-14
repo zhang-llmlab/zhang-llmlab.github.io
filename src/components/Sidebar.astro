@@ -1,229 +1,117 @@
 ---
+import { seriesTitle } from "../lib/series-meta";
+
 interface Props {
   series: [string, number][];
   keywords: [string, number][];
 }
-
 const { series, keywords } = Astro.props;
+
+const topKeywords = keywords.slice(0, 15);
+const hasMoreKeywords = keywords.length > topKeywords.length;
 ---
 
-<aside class="sidebar" aria-label="站点侧栏">
-  <section class="sidebar-card sidebar-series">
-    <h3 class="sidebar-heading">
-      <svg class="sidebar-heading-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
-        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
-      </svg>
-      专题
-    </h3>
-    <ul class="sidebar-list">
-      {
-        series.length === 0 ? (
-          <li class="sidebar-empty muted">暂无专题</li>
-        ) : (
-          series.map(([label, count]) => (
-            <li>
-              <a class="sidebar-cat-link" href={`/series/${encodeURIComponent(label)}`}>
-                <span class="sidebar-cat-label">{label}</span>
-                <span class="sidebar-cat-count">{count}</span>
-              </a>
-            </li>
-          ))
-        )
-      }
+<aside class="site-sidebar" aria-label="站内导航">
+  <section class="side-block">
+    <h2 class="side-block__title">专题</h2>
+    <ul class="side-block__list">
+      {series.map(([slug, count]) => (
+        <li>
+          <a href={`/series/${encodeURIComponent(slug)}`}>
+            <span class="side-block__key">{slug}</span>
+            <span class="side-block__count">{count}</span>
+          </a>
+        </li>
+      ))}
     </ul>
   </section>
 
-  <section class="sidebar-card sidebar-tags">
-    <h3 class="sidebar-heading">
-      <svg class="sidebar-heading-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-        <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
-        <line x1="7" y1="7" x2="7.01" y2="7"></line>
-      </svg>
-      关键词
-    </h3>
-    <div class="sidebar-tag-cloud">
-      {
-        keywords.length === 0 ? (
-          <span class="muted sidebar-empty">暂无关键词</span>
-        ) : (
-          keywords.map(([kw, count], i) => (
-            <a class={`sidebar-tag sidebar-tag--${i % 6}`} href={`/tags/${encodeURIComponent(kw)}`}>
-              {kw}
-              <span class="sidebar-tag-n">{count}</span>
-            </a>
-          ))
-        )
-      }
-    </div>
-  </section>
+  {topKeywords.length > 0 && (
+    <section class="side-block">
+      <h2 class="side-block__title">热门标签</h2>
+      <div class="side-block__chips">
+        {topKeywords.map(([tag]) => (
+          <a class="tag-chip" href={`/tags/${encodeURIComponent(tag)}`}>{tag}</a>
+        ))}
+      </div>
+      {hasMoreKeywords && (
+        <a class="side-block__more" href="/tags">更多 →</a>
+      )}
+    </section>
+  )}
 </aside>
 
 <style>
-  .sidebar {
+  .site-sidebar {
     position: sticky;
-    top: 5.5rem;
+    top: calc(56px + var(--sp-4));
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: var(--sp-5);
     min-width: 0;
   }
-
-  .sidebar-card {
-    padding: 1.15rem 1.1rem;
-    border-radius: 12px;
-    background: var(--sidebar-card-bg);
-    border: 1px solid var(--sidebar-card-border);
-    box-shadow: var(--sidebar-card-shadow);
-  }
-
-  .sidebar-heading {
+  .side-block {
     display: flex;
-    align-items: center;
-    gap: 0.45rem;
-    margin: 0 0 0.75rem;
-    font-size: 0.95rem;
-    font-weight: 650;
-    color: var(--sidebar-title);
+    flex-direction: column;
+    gap: var(--sp-3);
   }
-
-  .sidebar-heading-icon {
-    flex-shrink: 0;
-    opacity: 0.85;
+  .side-block + .side-block {
+    padding-top: var(--sp-5);
+    border-top: 1px solid var(--line);
   }
-
-  .sidebar-list {
-    list-style: none;
+  .side-block__title {
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: var(--fs-xs);
+    font-weight: 500;
+    text-transform: none;
+    letter-spacing: 0.02em;
+    color: var(--ink-mute);
+  }
+  .side-block__list {
     margin: 0;
     padding: 0;
-  }
-
-  .sidebar-list li {
-    border-top: 1px solid var(--sidebar-divider);
-  }
-
-  .sidebar-list li:first-child {
-    border-top: none;
-  }
-
-  .sidebar-cat-link {
+    list-style: none;
     display: flex;
-    align-items: center;
+    flex-direction: column;
+    gap: var(--sp-2);
+  }
+  .side-block__list a {
+    display: flex;
     justify-content: space-between;
-    gap: 0.5rem;
-    padding: 0.55rem 0;
-    font-size: 0.9rem;
-    color: var(--text-soft);
-    transition: color 0.18s ease;
+    align-items: baseline;
+    color: var(--ink);
+    text-decoration: none;
+    font-family: var(--font-mono);
+    font-size: var(--fs-sm);
+    padding: 2px 0;
+    transition: color 0.15s ease;
   }
-
-  .sidebar-cat-link:hover {
-    color: var(--brand);
+  .side-block__list a:hover {
+    color: var(--accent);
   }
-
-  .sidebar-cat-label {
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+  .side-block__key {
+    letter-spacing: -0.01em;
   }
-
-  .sidebar-cat-count {
-    flex-shrink: 0;
-    min-width: 1.5rem;
-    height: 1.35rem;
-    padding: 0 0.4rem;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.72rem;
-    font-weight: 600;
+  .side-block__count {
+    color: var(--ink-mute);
     font-variant-numeric: tabular-nums;
-    color: var(--sidebar-muted);
-    background: var(--sidebar-badge-bg);
-    border-radius: 999px;
   }
-
-  .sidebar-tag-cloud {
+  .side-block__chips {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.45rem;
+    gap: var(--sp-2);
   }
-
-  .sidebar-tag {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.25rem;
-    padding: 0.28rem 0.55rem;
-    border-radius: 6px;
-    font-size: 0.78rem;
-    font-weight: 500;
-    transition:
-      transform 0.15s ease,
-      filter 0.15s ease;
+  .side-block__more {
+    font-family: var(--font-mono);
+    font-size: var(--fs-xs);
+    color: var(--link);
+    text-decoration: none;
+    align-self: flex-start;
   }
-
-  .sidebar-tag:hover {
-    transform: translateY(-1px);
-    filter: brightness(1.05);
-  }
-
-  .sidebar-tag-n {
-    font-size: 0.68rem;
-    opacity: 0.85;
-    font-variant-numeric: tabular-nums;
-  }
-
-  .sidebar-tag--0 {
-    background: rgba(236, 72, 153, 0.18);
-    color: #db2777;
-  }
-  html[data-theme="light"] .sidebar-tag--0 {
-    color: #be185d;
-  }
-
-  .sidebar-tag--1 {
-    background: rgba(100, 116, 139, 0.2);
-    color: #64748b;
-  }
-
-  .sidebar-tag--2 {
-    background: rgba(52, 211, 153, 0.2);
-    color: #059669;
-  }
-
-  .sidebar-tag--3 {
-    background: rgba(251, 191, 36, 0.22);
-    color: #d97706;
-  }
-
-  .sidebar-tag--4 {
-    background: rgba(96, 165, 250, 0.2);
-    color: #2563eb;
-  }
-
-  .sidebar-tag--5 {
-    background: rgba(167, 139, 250, 0.2);
-    color: #7c3aed;
-  }
-
-  html[data-theme="dark"] .sidebar-tag--0,
-  html[data-theme="dark"] .sidebar-tag--1,
-  html[data-theme="dark"] .sidebar-tag--2,
-  html[data-theme="dark"] .sidebar-tag--3,
-  html[data-theme="dark"] .sidebar-tag--4,
-  html[data-theme="dark"] .sidebar-tag--5 {
-    filter: saturate(0.92);
-  }
-
-  .sidebar-empty {
-    font-size: 0.88rem;
-  }
-
-  @media (max-width: 960px) {
-    .sidebar {
-      position: static;
-      order: 2;
-    }
+  .side-block__more:hover {
+    color: var(--link-hover);
+    text-decoration: underline;
+    text-underline-offset: 4px;
   }
 </style>

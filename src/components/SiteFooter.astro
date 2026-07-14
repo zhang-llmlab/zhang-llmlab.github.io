@@ -1,0 +1,57 @@
+---
+import { SITE } from "../site.config";
+
+const year = 2026; // Astro build is static; hard-code to match spec
+const startYear = 2024;
+---
+
+<footer class="site-footer">
+  <p class="site-footer__line">
+    <span class="site-footer__brand">{SITE.author ?? "zhang-llmlab"}</span>
+    <span class="dot">·</span>
+    <span class="site-footer__years">{startYear}–{year}</span>
+  </p>
+  <p class="site-footer__links">
+    <a href="/rss.xml">RSS</a>
+    <span class="dot">·</span>
+    <a href="https://github.com/zhang-llmlab/zhang-llmlab.github.io">GitHub</a>
+    <span class="dot">·</span>
+    <a href="/sitemap-0.xml">站点地图</a>
+  </p>
+</footer>
+
+<style>
+  .site-footer {
+    margin-top: var(--sp-8);
+    padding: var(--sp-5) 0 var(--sp-4);
+    border-top: 1px solid var(--line);
+    color: var(--ink-mute);
+    font-size: var(--fs-xs);
+  }
+  .site-footer__line,
+  .site-footer__links {
+    margin: 0 0 var(--sp-2);
+  }
+  .site-footer__brand,
+  .site-footer__years {
+    font-family: var(--font-mono);
+  }
+  .site-footer .dot {
+    margin: 0 var(--sp-2);
+    color: var(--ink-mute);
+  }
+  .site-footer a {
+    color: var(--ink-soft);
+    font-family: var(--font-mono);
+    text-decoration: none;
+    transition: color 0.15s ease;
+  }
+  .site-footer a:hover {
+    color: var(--link);
+  }
+  .site-footer a:focus-visible {
+    outline: 2px solid var(--link);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+</style>

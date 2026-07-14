@@ -303,6 +303,31 @@ a.tag:hover {
   background: rgba(201, 169, 98, 0.12);
 }
 
+.tag-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--bg-soft);
+  color: var(--ink-mute);
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  line-height: 1.6;
+  border: 1px solid transparent;
+  text-decoration: none;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+a.tag-chip:hover {
+  color: var(--accent);
+  border-color: var(--accent-line);
+}
+
+a.tag-chip:focus-visible {
+  outline: 2px solid var(--link);
+  outline-offset: 2px;
+}
+
 .page-title {
   font-size: clamp(1.65rem, 4vw, 2rem);
   font-weight: 700;

@@ -1,0 +1,73 @@
+---
+interface Props {
+  title: string;
+  tagline: string;
+  postCount: number;
+  seriesCount: number;
+  latestUpdated: Date;
+}
+
+const { title, tagline, postCount, seriesCount, latestUpdated } = Astro.props;
+
+function formatYmd(d: Date) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+---
+
+<header class="site-header">
+  <h1 class="site-header__title">{title}</h1>
+  <div class="site-header__rule" aria-hidden="true"></div>
+  <p class="site-header__tagline">{tagline}</p>
+  <p class="site-header__stats">
+    <span class="stat-num">{postCount}</span> 篇笔记
+    <span class="dot">·</span>
+    <span class="stat-num">{seriesCount}</span> 个专题
+    <span class="dot">·</span>
+    最后更新 <span class="stat-num">{formatYmd(latestUpdated)}</span>
+  </p>
+</header>
+
+<style>
+  .site-header {
+    padding: var(--sp-6) 0 var(--sp-5);
+    max-width: 46ch;
+  }
+  .site-header__title {
+    margin: 0 0 var(--sp-3);
+    font-family: var(--font-mono);
+    font-weight: 500;
+    font-size: var(--fs-2xl);
+    letter-spacing: -0.02em;
+    color: var(--ink);
+    line-height: 1.1;
+  }
+  .site-header__rule {
+    width: 8em;
+    height: 1px;
+    background: var(--accent-line);
+    margin-bottom: var(--sp-4);
+  }
+  .site-header__tagline {
+    margin: 0 0 var(--sp-3);
+    font-size: var(--fs-base);
+    line-height: 1.6;
+    color: var(--ink-soft);
+    text-wrap: pretty;
+  }
+  .site-header__stats {
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: var(--fs-sm);
+    color: var(--ink-mute);
+  }
+  .stat-num {
+    color: var(--accent);
+  }
+  .dot {
+    margin: 0 var(--sp-2);
+    color: var(--ink-mute);
+  }
+</style>

@@ -3,6 +3,7 @@ import "katex/dist/katex.min.css";
 import "../styles/global.css";
 import Nav from "../components/Nav.astro";
 import Sidebar from "../components/Sidebar.astro";
+import SiteFooter from "../components/SiteFooter.astro";
 import ThemeToggle from "../components/ThemeToggle.astro";
 import { SITE } from "../site.config";
 import { ViewTransitions } from "astro:transitions";
@@ -87,7 +88,11 @@ const sidebarData = fullWidth
     <ThemeToggle />
     {
       fullWidth ? (
-        <slot />
+        <div class="container layout-page">
+          <Nav currentPath={Astro.url.pathname} />
+          <slot />
+          <SiteFooter />
+        </div>
       ) : (
         <div class="container layout-page">
           <Nav currentPath={Astro.url.pathname} />
@@ -97,6 +102,7 @@ const sidebarData = fullWidth
             </div>
             <Sidebar series={sidebarData.series} keywords={sidebarData.keywords} />
           </div>
+          <SiteFooter />
         </div>
       )
     }
