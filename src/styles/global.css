@@ -1,82 +1,123 @@
 :root {
   color-scheme: dark;
-  --bg: #0a0b0f;
-  --bg-elevated: #101118;
-  --bg-soft: #181b24;
-  --text: #f2f0ec;
-  --text-soft: #a8a5a0;
-  --text-muted: #6d6a64;
-  --brand: #c9a962;
-  --brand-hover: #dfc07a;
-  --brand-2: #8fbfcf;
-  --accent: #b8735a;
-  --line: rgba(210, 200, 180, 0.12);
-  --line-strong: rgba(220, 210, 190, 0.24);
-  --card: rgba(22, 24, 30, 0.82);
-  --card-hover: rgba(30, 33, 42, 0.92);
-  --card-shine: linear-gradient(165deg, rgba(255, 255, 255, 0.055) 0%, rgba(255, 255, 255, 0) 42%);
+
+  /* ── Canonical palette (Ink & Phosphor) ─────────────────── */
+  --bg:          oklch(15% 0.008 245);
+  --bg-elevated: oklch(19% 0.010 245);
+  --bg-soft:     oklch(23% 0.012 245);
+
+  --ink:      oklch(93% 0.015 85);
+  --ink-soft: oklch(72% 0.015 85);
+  --ink-mute: oklch(52% 0.012 85);
+
+  --accent:      oklch(68% 0.14 45);
+  --accent-soft: oklch(68% 0.14 45 / 0.14);
+  --accent-line: oklch(68% 0.14 45 / 0.35);
+
+  --link:       oklch(74% 0.11 195);
+  --link-hover: oklch(82% 0.12 195);
+
+  --line:        oklch(35% 0.008 245 / 0.55);
+  --line-strong: oklch(45% 0.010 245 / 0.75);
+
+  /* ── Typography ─────────────────────────────────────────── */
+  --font-sans: "Noto Sans SC", "PingFang SC", "Hiragino Sans GB",
+               -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+
+  --fs-xs:   0.78rem;
+  --fs-sm:   0.88rem;
+  --fs-base: 1rem;
+  --fs-lg:   1.15rem;
+  --fs-xl:   1.4rem;
+  --fs-2xl:  clamp(1.75rem, 3vw, 2.3rem);
+
+  /* ── Space scale (8-based) ─────────────────────────────── */
+  --sp-1: 0.25rem;
+  --sp-2: 0.5rem;
+  --sp-3: 0.75rem;
+  --sp-4: 1rem;
+  --sp-5: 1.5rem;
+  --sp-6: 2rem;
+  --sp-7: 3rem;
+  --sp-8: 4rem;
+
+  /* ── Radii ─────────────────────────────────────────────── */
+  --radius:    14px;
+  --radius-lg: 18px;
+
+  /* ── Shadows (impeccable polish kept these tight) ──────── */
   --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.32), 0 1px 0 rgba(255, 255, 255, 0.04) inset;
   --shadow-md: 0 8px 20px rgba(0, 0, 0, 0.4), 0 1px 0 rgba(255, 255, 255, 0.05) inset;
-  --radius: 14px;
-  --radius-lg: 18px;
-  --code-bg: #0d0f14;
-  --code-border: rgba(180, 170, 150, 0.16);
-  --code-inline-bg: rgba(201, 169, 98, 0.1);
-  --code-inline-border: rgba(201, 169, 98, 0.22);
-  --code-inline-fg: #f0ead8;
-  --focus: rgba(201, 169, 98, 0.5);
-  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* ── Misc ──────────────────────────────────────────────── */
+  --focus:     oklch(74% 0.11 195 / 0.5);   /* link color at 50% */
+  --ease-out:  cubic-bezier(0.22, 1, 0.36, 1);
   --content-max: 1800px;
-  --body-bg: radial-gradient(ellipse 820px 480px at 8% -8%, rgba(201, 169, 98, 0.09), transparent 58%),
-    radial-gradient(ellipse 680px 420px at 92% 12%, rgba(143, 191, 207, 0.07), transparent 52%),
-    radial-gradient(ellipse 520px 360px at 48% 100%, rgba(184, 115, 90, 0.05), transparent 48%),
-    linear-gradient(180deg, var(--bg-elevated) 0%, var(--bg) 30%, var(--bg) 100%);
-  --sidebar-card-bg: rgba(26, 28, 34, 0.95);
-  --sidebar-card-border: rgba(210, 200, 180, 0.1);
-  --sidebar-card-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
-  --sidebar-title: var(--text);
-  --sidebar-muted: var(--text-soft);
-  --sidebar-divider: rgba(210, 200, 180, 0.1);
-  --sidebar-badge-bg: rgba(255, 255, 255, 0.06);
-  --sidebar-social-bg: rgba(255, 255, 255, 0.05);
+
+  /* ── Legacy aliases (kept until Task 6 cleanup) ────────── */
+  --text:          var(--ink);
+  --text-soft:     var(--ink-soft);
+  --text-muted:    var(--ink-mute);
+  --brand:         var(--accent);
+  --brand-hover:   var(--link-hover);
+  --brand-2:       var(--link);
+  --card:          var(--bg-elevated);
+  --card-hover:    var(--bg-soft);
+  --card-shine:    linear-gradient(165deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0) 42%);
+  --code-bg:       oklch(11% 0.008 245);
+  --code-border:   var(--line);
+  --code-inline-bg:     var(--accent-soft);
+  --code-inline-border: var(--accent-line);
+  --code-inline-fg:     var(--ink);
+  --body-bg: linear-gradient(180deg, var(--bg-elevated) 0%, var(--bg) 30%, var(--bg) 100%);
+  --sidebar-card-bg:      var(--bg-elevated);
+  --sidebar-card-border:  var(--line);
+  --sidebar-card-shadow:  var(--shadow-sm);
+  --sidebar-title:        var(--ink);
+  --sidebar-muted:        var(--ink-soft);
+  --sidebar-divider:      var(--line);
+  --sidebar-badge-bg:     var(--bg-soft);
+  --sidebar-social-bg:    var(--bg-soft);
 }
 
 html[data-theme="light"] {
   color-scheme: light;
-  --bg: #eef2ee;
-  --bg-elevated: #ffffff;
-  --bg-soft: #f0f4f1;
-  --text: #1a2e35;
-  --text-soft: #4a5f66;
-  --text-muted: #556a70;
-  --brand: #b8923a;
-  --brand-hover: #9a7628;
-  --brand-2: #3d7a8c;
-  --accent: #a85c48;
-  --line: rgba(30, 70, 55, 0.1);
-  --line-strong: rgba(30, 70, 55, 0.2);
-  --card: rgba(255, 255, 255, 0.95);
-  --card-hover: #ffffff;
-  --card-shine: linear-gradient(165deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0) 45%);
+
+  --bg:          oklch(97% 0.005 90);
+  --bg-elevated: oklch(99% 0.003 90);
+  --bg-soft:     oklch(94% 0.008 90);
+
+  --ink:      oklch(22% 0.015 245);
+  --ink-soft: oklch(40% 0.015 245);
+  --ink-mute: oklch(52% 0.012 245);
+
+  --accent:      oklch(52% 0.14 40);
+  --accent-soft: oklch(52% 0.14 40 / 0.10);
+  --accent-line: oklch(52% 0.14 40 / 0.30);
+
+  --link:       oklch(48% 0.12 210);
+  --link-hover: oklch(40% 0.14 210);
+
+  --line:        oklch(60% 0.008 245 / 0.30);
+  --line-strong: oklch(50% 0.010 245 / 0.45);
+
   --shadow-sm: 0 2px 6px rgba(0, 40, 30, 0.08), 0 1px 0 rgba(255, 255, 255, 0.8) inset;
   --shadow-md: 0 6px 16px rgba(0, 40, 30, 0.1);
-  --code-bg: #f4f6f4;
-  --code-border: rgba(30, 60, 50, 0.12);
-  --code-inline-bg: rgba(184, 146, 58, 0.12);
-  --code-inline-border: rgba(184, 146, 58, 0.25);
-  --code-inline-fg: #5a4308;
-  --focus: rgba(184, 146, 58, 0.45);
-  --body-bg: radial-gradient(ellipse 780px 440px at 12% -10%, rgba(120, 180, 140, 0.14), transparent 55%),
-    radial-gradient(ellipse 620px 400px at 88% 8%, rgba(100, 180, 200, 0.1), transparent 50%),
-    linear-gradient(180deg, #e8f0ec 0%, #f2f6f3 45%, #eaf1ed 100%);
-  --sidebar-card-bg: #ffffff;
-  --sidebar-card-border: rgba(0, 0, 0, 0.06);
-  --sidebar-card-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
-  --sidebar-title: #1a3a42;
-  --sidebar-muted: #5a6f75;
-  --sidebar-divider: rgba(0, 0, 0, 0.07);
-  --sidebar-badge-bg: rgba(0, 0, 0, 0.06);
-  --sidebar-social-bg: rgba(0, 0, 0, 0.05);
+
+  --focus: oklch(48% 0.12 210 / 0.45);
+
+  /* Legacy aliases (light mode) */
+  --code-bg:       oklch(94% 0.005 90);
+  --body-bg: linear-gradient(180deg, var(--bg-elevated) 0%, var(--bg) 60%, var(--bg) 100%);
+  --sidebar-card-bg:      var(--bg-elevated);
+  --sidebar-card-border:  var(--line);
+  --sidebar-card-shadow:  var(--shadow-sm);
+  --sidebar-title:        var(--ink);
+  --sidebar-muted:        var(--ink-soft);
+  --sidebar-divider:      var(--line);
+  --sidebar-badge-bg:     var(--bg-soft);
+  --sidebar-social-bg:    var(--bg-soft);
 }
 
 *,
