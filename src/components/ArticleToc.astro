@@ -5,125 +5,108 @@ interface Props {
   headings: MarkdownHeading[];
   variant?: "sidebar" | "inline";
 }
-
 const { headings, variant = "sidebar" } = Astro.props;
-const items = headings.filter((h) => h.depth >= 1 && h.depth <= 5 && h.slug);
-const minDepth = items.reduce((acc, h) => Math.min(acc, h.depth), 6);
 ---
 
-{
-  items.length > 0 && (
-    <nav
-      class:list={["article-toc", variant === "inline" ? "article-toc--inline" : "article-toc--sidebar"]}
-      aria-label="文章目录"
-    >
-    <p class="article-toc__title">目录</p>
-    <ul class="article-toc__list">
-      {items.map((h) => (
-        <li
-          class:list={["article-toc__item", `article-toc__item--d${h.depth}`]}
-          style={`--toc-depth: ${Math.max(0, h.depth - minDepth)}`}
-        >
-          <a class="article-toc__link" href={`#${h.slug}`}>
-            {h.text}
-          </a>
-        </li>
-      ))}
-    </ul>
-  </nav>
-  )
-}
+<nav class:list={["article-toc", `article-toc--${variant}`]} aria-label="目录">
+  <p class="article-toc__title">目录</p>
+  <ol class="article-toc__list">
+    {headings.map((h) => (
+      <li
+        class:list={["article-toc__item", `article-toc__item--d${h.depth}`]}
+        style={`--toc-depth: ${Math.max(0, h.depth - 1)}`}
+      >
+        <a href={`#${h.slug}`} data-toc-link={h.slug}>
+          <span class="article-toc__marker" aria-hidden="true">·</span>
+          <span class="article-toc__text">{h.text}</span>
+        </a>
+      </li>
+    ))}
+  </ol>
+</nav>
 
 <style>
-  .article-toc {
-    --article-toc-pad: 0.65rem 0;
-    max-width: 100%;
-  }
-
+  .article-toc { font-size: var(--fs-sm); line-height: 1.5; }
   .article-toc__title {
-    margin: 0 0 0.5rem;
-    font-size: 0.78rem;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--text-muted);
+    margin: 0 0 var(--sp-3);
+    font-family: var(--font-mono);
+    font-weight: 500;
+    font-size: var(--fs-xs);
+    color: var(--ink-mute);
   }
-
   .article-toc__list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 0.2rem;
+    margin: 0; padding: 0; list-style: none;
+    display: flex; flex-direction: column; gap: 2px;
   }
-
-  .article-toc__link {
-    display: block;
-    padding: 0.22rem 0;
-    font-size: 0.84rem;
-    line-height: 1.4;
-    color: var(--text-soft);
-    text-decoration: none;
-    border-radius: 4px;
-    transition: color 0.15s ease;
-    overflow-wrap: anywhere;
-    word-break: break-word;
-  }
-
-  .article-toc__link:hover {
-    color: var(--brand);
-  }
-
   .article-toc__item {
-    padding-left: calc(var(--toc-depth, 0) * 0.65rem);
-    border-left: 2px solid transparent;
-    margin-left: -2px;
+    padding-left: calc(var(--toc-depth, 0) * 0.85rem);
   }
-
-  .article-toc__item--d2 {
-    border-left-color: rgba(201, 169, 98, 0.35);
+  .article-toc__item a {
+    display: flex; gap: var(--sp-2); align-items: baseline;
+    color: var(--ink-soft);
+    text-decoration: none;
+    padding: 2px 0;
+    transition: color 0.15s ease;
   }
-
-  .article-toc__item--d1 {
-    border-left-color: rgba(143, 191, 207, 0.32);
+  .article-toc__item a:hover { color: var(--ink); }
+  .article-toc__item a.is-current { color: var(--accent); }
+  .article-toc__marker {
+    flex-shrink: 0;
+    font-family: var(--font-mono);
+    color: var(--ink-mute);
+    line-height: 1;
   }
+  .article-toc__item a.is-current .article-toc__marker { color: var(--accent); }
 
   .article-toc--sidebar {
-    padding: 0.95rem 1rem;
-    border-radius: var(--radius);
-    border: 1px solid var(--line);
-    background: var(--bg-soft);
+    position: sticky;
+    top: calc(56px + var(--sp-4));
+    max-height: calc(100vh - 56px - var(--sp-6));
+    overflow-y: auto;
+    padding-right: var(--sp-2);
   }
-
-  .article-toc--sidebar .article-toc__list {
-    max-height: none;
-    overflow: visible;
-    padding-right: 0;
-  }
-
   .article-toc--inline {
-    margin: 0 0 1.25rem;
-    padding: 1rem 1.05rem;
-    border-radius: var(--radius);
+    margin: var(--sp-4) 0 var(--sp-5);
+    padding: var(--sp-4);
     border: 1px solid var(--line);
-    background: var(--bg-soft);
-  }
-
-  .article-toc--inline .article-toc__title {
-    margin-bottom: 0.45rem;
-  }
-
-  .article-toc--inline .article-toc__list {
-    max-height: min(40vh, 16rem);
-    overflow: auto;
-  }
-
-  @media (min-width: 1080px) {
-    .article-toc--sidebar {
-      position: sticky;
-      top: 6rem;
-      align-self: start;
-    }
+    border-radius: var(--radius);
+    background: var(--bg-elevated);
   }
 </style>
+
+<script>
+  function initToc() {
+    const links = document.querySelectorAll<HTMLAnchorElement>("[data-toc-link]");
+    if (!links.length) return;
+    const bySlug = new Map<string, HTMLAnchorElement>();
+    links.forEach((a) => bySlug.set(a.dataset.tocLink ?? "", a));
+
+    const sections: HTMLElement[] = [];
+    bySlug.forEach((_, slug) => {
+      const el = document.getElementById(slug);
+      if (el) sections.push(el);
+    });
+    if (!sections.length) return;
+
+    let currentSlug = "";
+    function setCurrent(slug: string) {
+      if (slug === currentSlug) return;
+      currentSlug = slug;
+      links.forEach((a) => a.classList.toggle("is-current", a.dataset.tocLink === slug));
+    }
+
+    const io = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((e) => e.isIntersecting)
+          .sort((a, b) => (a.target as HTMLElement).offsetTop - (b.target as HTMLElement).offsetTop);
+        if (visible[0]) setCurrent(visible[0].target.id);
+      },
+      { rootMargin: "-30% 0px -60% 0px", threshold: 0 }
+    );
+    sections.forEach((s) => io.observe(s));
+  }
+
+  document.addEventListener("astro:page-load", initToc);
+  initToc();
+</script>

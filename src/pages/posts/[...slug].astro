@@ -43,12 +43,14 @@ const nextInSeries =
   category={post.data.category}
   tags={post.data.tags}
   series={post.data.series}
+  seriesOrder={post.data.seriesOrder}
   seriesItems={seriesItems}
   currentSlug={post.slug}
   prevInSeries={prevInSeries}
   nextInSeries={nextInSeries}
   headings={headings}
   toc={post.data.toc}
+  body={post.body}
 >
   <Content />
 </PostLayout>

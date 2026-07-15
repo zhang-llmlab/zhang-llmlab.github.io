@@ -6,6 +6,9 @@ import BaseLayout from "./BaseLayout.astro";
 import Giscus from "../components/Giscus.astro";
 import MermaidRuntime from "../components/MermaidRuntime.astro";
 import ScrollJumps from "../components/ScrollJumps.astro";
+import { seriesTitle } from "../lib/series-meta";
+import { readingTime } from "../lib/reading-time";
+import { excerpt } from "../lib/text";
 
 interface Props {
   title: string;
@@ -14,60 +17,71 @@ interface Props {
   tags?: string[];
   category?: string;
   series?: string;
+  seriesOrder?: number;
   seriesItems?: { slug: string; title: string; order?: number; pubDate?: Date }[];
   currentSlug?: string;
   prevInSeries?: { slug: string; title: string; order?: number };
   nextInSeries?: { slug: string; title: string; order?: number };
   showComments?: boolean;
   headings?: MarkdownHeading[];
-  /** `true` 左侧目录；`inline` 文首目录；`false` 关闭 */
   toc?: boolean | "inline";
+  body?: string;
 }
 
 const {
-  title,
-  description,
-  pubDate,
-  tags = [],
-  category = "未分类",
-  series,
-  seriesItems = [],
-  currentSlug,
-  prevInSeries,
-  nextInSeries,
-  showComments = true,
-  headings = [],
-  toc = true
+  title, description, pubDate, tags = [], category = "未分类",
+  series, seriesOrder, seriesItems = [], currentSlug,
+  prevInSeries, nextInSeries, showComments = true,
+  headings = [], toc = true, body = ""
 } = Astro.props;
 
-// MDX 正文里允许使用 h1 作为“一级标题”（如 `# 1 xxx`）。
-// 目录只收集正文 headings（Astro 的 headings 会包含 slug 的标题），并限制到 h1–h5。
 const tocHeadings = headings.filter((h) => h.depth >= 1 && h.depth <= 5 && h.slug);
 const tocOn = toc !== false;
 const showSidebarToc = tocOn && toc !== "inline" && tocHeadings.length > 0;
 const showInlineToc = tocOn && toc === "inline" && tocHeadings.length > 0;
+
+const minutes = body ? readingTime(body) : 0;
+const cleanedDesc = excerpt(description, 180);
+const orderLabel = seriesOrder != null ? String(seriesOrder).padStart(2, "0") : "";
+
+function fmtYmd(d?: Date) {
+  if (!d) return "";
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
 ---
 
 <BaseLayout title={title} description={description}>
-  <article class="card article">
-    <header class="article-header">
-      <p class="article-meta muted">{pubDate?.toLocaleDateString("zh-CN")} · {category}</p>
-      <h1 class="article-title">{title}</h1>
-      {!!description && <p class="article-desc muted">{description}</p>}
-      <div class="tag-list">
-        {tags.map((tag) => <a class="tag" href={`/tags/${tag}`}>#{tag}</a>)}
-      </div>
-      {
-        series && (
-          <p class="series muted">
-            所属专题：<a href={`/series/${encodeURIComponent(series)}`}>{series}</a>
-          </p>
-        )
-      }
+  <article class="post">
+    <header class="post-header">
+      <p class="post-header__meta">
+        {pubDate && <><time datetime={pubDate.toISOString()}>{fmtYmd(pubDate)}</time><span class="dot">·</span></>}
+        <span>{category}</span>
+        {minutes > 0 && <><span class="dot">·</span>阅读时长约 <span class="stat-num">{minutes}</span> 分钟</>}
+      </p>
+      <div class="post-header__rule" aria-hidden="true"></div>
+      <h1 class="post-header__title">{title}</h1>
+      {cleanedDesc && <p class="post-header__desc">{cleanedDesc}</p>}
+      {tags.length > 0 && (
+        <div class="post-header__tags">
+          {tags.map((t) => <a class="tag-chip" href={`/tags/${encodeURIComponent(t)}`}>{t}</a>)}
+        </div>
+      )}
+      {series && (
+        <p class="post-header__series">
+          所属专题：<a href={`/series/${encodeURIComponent(series)}`}>{seriesTitle(series)}</a>
+          <span class="mono-badge">
+            (<span>{series}</span><span class="dot-accent">·</span><span>{orderLabel}</span>)
+          </span>
+        </p>
+      )}
     </header>
-    <div class:list={["article-body", { "article-body--with-toc": showSidebarToc }]}>
+
+    <div class:list={["post-body", { "post-body--with-toc": showSidebarToc }]}>
       {showSidebarToc && <ArticleToc headings={tocHeadings} variant="sidebar" />}
-      <div class="article-main">
+      <div class="post-main">
         {showInlineToc && <ArticleToc headings={tocHeadings} variant="inline" />}
         <div class="content prose">
           <slot />
@@ -75,168 +89,216 @@ const showInlineToc = tocOn && toc === "inline" && tocHeadings.length > 0;
       </div>
     </div>
   </article>
-  {
-    series && seriesItems.length > 0 && (
-      <>
-        <aside class="card series-nav">
-          <h3>本专题文章</h3>
-          <ol>
-            {seriesItems.map((item) => (
-              <li>
-                <a class={item.slug === currentSlug ? "active" : ""} href={`/posts/${item.slug}`}>
-                  {item.order ? `第 ${item.order} 篇 · ` : ""}
-                  {item.title}
-                </a>
-              </li>
-            ))}
-          </ol>
-        </aside>
-        {(prevInSeries || nextInSeries) && (
-          <nav class="card series-pager" aria-label="专题上下篇导航">
+
+  {series && seriesItems.length > 0 && (
+    <>
+      <aside class="series-nav">
+        <p class="series-nav__meta">
+          <span>{series}</span>
+          <span class="dot">·</span>
+          <span class="stat-num">{seriesItems.length}</span> 篇
+        </p>
+        <h3 class="series-nav__title">{seriesTitle(series)}</h3>
+        <ol class="series-nav__list">
+          {seriesItems.map((item) => (
+            <li>
+              <a class:list={[{ "is-active": item.slug === currentSlug }]} href={`/posts/${item.slug}`}>
+                <span class="series-nav__order">
+                  {item.order != null ? String(item.order).padStart(2, "0") : "··"}
+                </span>
+                <span class="series-nav__ptitle">{item.title}</span>
+              </a>
+            </li>
+          ))}
+        </ol>
+      </aside>
+
+      {(prevInSeries || nextInSeries) && (
+        <nav class="series-pager" aria-label="专题上下篇导航">
+          <div class="series-pager__cell series-pager__cell--prev">
             {prevInSeries ? (
-              <a class="pager-link" href={`/posts/${prevInSeries.slug}`}>
-                <span class="muted">上一篇</span>
+              <a href={`/posts/${prevInSeries.slug}`}>
+                <span class="series-pager__hint">← 上一篇</span>
                 <strong>{prevInSeries.title}</strong>
               </a>
-            ) : (
-              <span />
-            )}
+            ) : <span />}
+          </div>
+          <div class="series-pager__cell series-pager__cell--next">
             {nextInSeries ? (
-              <a class="pager-link align-right" href={`/posts/${nextInSeries.slug}`}>
-                <span class="muted">下一篇</span>
+              <a href={`/posts/${nextInSeries.slug}`}>
+                <span class="series-pager__hint">下一篇 →</span>
                 <strong>{nextInSeries.title}</strong>
               </a>
-            ) : (
-              <span />
-            )}
-          </nav>
-        )}
-      </>
-    )
-  }
+            ) : <span />}
+          </div>
+        </nav>
+      )}
+    </>
+  )}
+
   {showComments && <Giscus />}
   <MermaidRuntime />
   <ScrollJumps />
 </BaseLayout>
 
 <style>
-  .article {
-    padding: 1.5rem 1.45rem 1.6rem;
-    border-radius: var(--radius-lg);
+  .post { padding: var(--sp-5) 0 var(--sp-6); }
+
+  .post-header { margin-bottom: var(--sp-6); }
+  .post-header__meta {
+    margin: 0 0 var(--sp-3);
+    font-family: var(--font-mono);
+    font-size: var(--fs-sm);
+    color: var(--ink-mute);
   }
-  .article-header {
-    margin-bottom: 0.25rem;
-    padding-bottom: 0.15rem;
+  .post-header__meta time { color: var(--ink); }
+  .post-header__meta .dot { margin: 0 var(--sp-2); }
+  .stat-num { color: var(--accent); }
+  .post-header__rule {
+    width: 8em;
+    height: 1px;
+    background: var(--accent-line);
+    margin-bottom: var(--sp-4);
   }
-  .article-meta {
-    font-size: 0.88rem;
-    letter-spacing: 0.02em;
-    margin: 0 0 0.6rem;
-  }
-  .article-title {
-    margin: 0 0 0.65rem;
-    font-size: clamp(1.55rem, 4vw, 2.05rem);
+  .post-header__title {
+    margin: 0 0 var(--sp-3);
+    font-size: var(--fs-2xl);
     font-weight: 700;
     letter-spacing: -0.035em;
-    line-height: 1.25;
-    color: var(--text);
+    line-height: 1.2;
+    color: var(--ink);
     text-wrap: balance;
   }
-  .article-desc {
-    margin: 0 0 1rem;
-    font-size: 1.02rem;
+  .post-header__desc {
+    margin: 0 0 var(--sp-4);
+    font-size: var(--fs-base);
     line-height: 1.65;
-    max-width: 52ch;
+    color: var(--ink-soft);
+    max-width: 54ch;
+    text-wrap: pretty;
   }
-  .tag-list {
-    display: flex;
-    gap: 0.5rem;
-    flex-wrap: wrap;
+  .post-header__tags {
+    display: flex; flex-wrap: wrap; gap: var(--sp-2); margin-bottom: var(--sp-3);
   }
-  .article-body {
-    margin-top: 1.35rem;
-    padding-top: 1.45rem;
+  .post-header__series {
+    margin: var(--sp-2) 0 0;
+    font-size: var(--fs-sm);
+    color: var(--ink-soft);
+  }
+  .post-header__series a {
+    color: var(--link);
+    text-decoration: none;
+    transition: color 0.15s ease;
+  }
+  .post-header__series a:hover { color: var(--link-hover); }
+  .post-header__series .mono-badge {
+    font-family: var(--font-mono);
+    color: var(--ink-mute);
+    margin-left: var(--sp-2);
+  }
+  .post-header__series .dot-accent { color: var(--accent); margin: 0 1px; }
+
+  .post-body {
     position: relative;
     display: grid;
-    gap: 1.25rem;
+    gap: var(--sp-5);
     align-items: start;
   }
-
-  .article-body--with-toc {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
+  .post-body--with-toc { grid-template-columns: minmax(0, 1fr); }
   @media (min-width: 1080px) {
-    .article-body--with-toc {
+    .post-body--with-toc {
       grid-template-columns: minmax(11rem, 13.5rem) minmax(0, 1fr);
-      gap: 1.75rem;
+      gap: var(--sp-6);
     }
   }
+  .post-main { min-width: 0; }
 
-  .article-main {
+  .series-nav {
+    margin-top: var(--sp-6);
+    padding-top: var(--sp-5);
+    border-top: 1px solid var(--line);
+  }
+  .series-nav__meta {
+    margin: 0 0 var(--sp-2);
+    font-family: var(--font-mono);
+    font-size: var(--fs-sm);
+    color: var(--ink-mute);
+  }
+  .series-nav__meta .dot { margin: 0 var(--sp-2); }
+  .series-nav__title {
+    margin: 0 0 var(--sp-4);
+    font-size: var(--fs-lg);
+    font-weight: 600;
+    color: var(--ink);
+    letter-spacing: -0.01em;
+  }
+  .series-nav__list {
+    margin: 0; padding: 0; list-style: none;
+    display: flex; flex-direction: column; gap: var(--sp-1);
+  }
+  .series-nav__list a {
+    display: flex; gap: var(--sp-3); align-items: baseline;
+    padding: var(--sp-2) var(--sp-3);
+    border-radius: 6px;
+    color: var(--ink-soft);
+    text-decoration: none;
+    transition: color 0.15s ease, background 0.15s ease;
+  }
+  .series-nav__list a:hover { color: var(--ink); }
+  .series-nav__list a.is-active {
+    color: var(--ink);
+    background: var(--accent-soft);
+  }
+  .series-nav__order {
+    flex-shrink: 0;
+    font-family: var(--font-mono);
+    color: var(--ink-mute);
+    font-variant-numeric: tabular-nums;
+    font-size: var(--fs-sm);
+  }
+  .series-nav__list a.is-active .series-nav__order { color: var(--accent); }
+  .series-nav__ptitle { font-size: var(--fs-sm); }
+
+  .series-pager {
+    margin-top: var(--sp-5);
+    padding-top: var(--sp-5);
+    border-top: 1px solid var(--line);
+    display: grid;
+    grid-template-columns: 1fr 1px 1fr;
+    gap: var(--sp-4);
+    align-items: stretch;
+  }
+  .series-pager::after {
+    content: "";
+    grid-column: 2;
+    background: var(--line);
+  }
+  .series-pager__cell {
+    display: flex; flex-direction: column; gap: var(--sp-2);
     min-width: 0;
   }
-
-  .content {
-    position: relative;
+  .series-pager__cell--next { text-align: right; align-items: flex-end; }
+  .series-pager__cell a {
+    display: flex; flex-direction: column; gap: var(--sp-1);
+    color: var(--ink);
+    text-decoration: none;
+    transition: color 0.15s ease;
   }
-  .article-body::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: min(100%, 42rem);
-    height: 1px;
-    background: linear-gradient(90deg, var(--line-strong), transparent);
-    border-radius: 1px;
+  .series-pager__cell a:hover { color: var(--accent); }
+  .series-pager__hint {
+    font-family: var(--font-mono);
+    font-size: var(--fs-xs);
+    color: var(--ink-mute);
   }
-  .series {
-    margin-top: 0.8rem;
-  }
-  .series-nav {
-    margin-top: 1rem;
-    padding: 1.1rem 1.15rem;
-    border-radius: var(--radius);
-  }
-  .series-nav h3 {
-    margin-top: 0;
-  }
-  .series-nav ol {
-    margin: 0;
-    padding-left: 1.1rem;
-    display: grid;
-    gap: 0.4rem;
-  }
-  .series-nav a {
-    color: var(--text-soft);
-  }
-  .series-nav a.active {
-    color: var(--text);
+  .series-pager__cell strong {
     font-weight: 600;
-  }
-  .series-pager {
-    margin-top: 1rem;
-    padding: 0.9rem;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.8rem;
-  }
-  .pager-link {
-    display: grid;
-    gap: 0.3rem;
-    border: 1px solid var(--line);
-    border-radius: 12px;
-    padding: 0.7rem;
-  }
-  .align-right {
-    text-align: right;
+    letter-spacing: -0.01em;
+    font-size: var(--fs-sm);
+    text-wrap: balance;
   }
   @media (max-width: 720px) {
-    .series-pager {
-      grid-template-columns: 1fr;
-    }
-    .align-right {
-      text-align: left;
-    }
+    .series-pager { grid-template-columns: 1fr; }
+    .series-pager::after { display: none; }
+    .series-pager__cell--next { text-align: left; align-items: flex-start; }
   }
 </style>
