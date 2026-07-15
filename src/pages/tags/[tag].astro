@@ -2,20 +2,15 @@
 import { getCollection } from "astro:content";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 
-function postMatchesTag(
-  tags: string[],
-  keywords: string[],
-  needle: string
-): boolean {
+function postMatchesTag(tags: string[], keywords: string[], needle: string): boolean {
   if (tags.includes(needle)) return true;
   return keywords.some((k) => k.trim() === needle);
 }
 
 export async function getStaticPaths() {
-  const posts = (await getCollection("posts")).filter((item) => !item.data.draft);
-  const projects = (await getCollection("projects")).filter((item) => !item.data.draft);
+  const posts = (await getCollection("posts")).filter((p) => !p.data.draft);
+  const projects = (await getCollection("projects")).filter((p) => !p.data.draft);
   const names = new Set<string>();
-
   for (const entry of posts) {
     entry.data.tags.forEach((tag) => names.add(tag));
     for (const k of entry.data.keywords || []) {
@@ -23,10 +18,7 @@ export async function getStaticPaths() {
       if (t) names.add(t);
     }
   }
-  projects.forEach((entry) => {
-    entry.data.tags.forEach((tag) => names.add(tag));
-  });
-
+  projects.forEach((entry) => entry.data.tags.forEach((tag) => names.add(tag)));
   return Array.from(names).map((tag) => ({ params: { tag } }));
 }
 
@@ -34,89 +26,133 @@ const { tag } = Astro.params;
 const needle = tag ?? "";
 
 const posts = (await getCollection("posts")).filter(
-  (item) =>
-    !item.data.draft && postMatchesTag(item.data.tags, item.data.keywords ?? [], needle)
+  (item) => !item.data.draft && postMatchesTag(item.data.tags, item.data.keywords ?? [], needle)
 );
 const projects = (await getCollection("projects")).filter(
   (item) => !item.data.draft && item.data.tags.includes(needle)
 );
+
+// Compute related tags: for each other tag that co-occurs with this tag, count occurrences
+const coOccur = new Map<string, number>();
+for (const p of posts) {
+  const all = new Set<string>([...p.data.tags, ...(p.data.keywords || []).map((k) => String(k).trim())]);
+  all.delete(needle);
+  for (const t of all) coOccur.set(t, (coOccur.get(t) ?? 0) + 1);
+}
+const related = Array.from(coOccur.entries()).sort((a, b) => b[1] - a[1]).slice(0, 6);
+
+function fmtYmd(d: Date) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
 ---
 
-<BaseLayout title={`关键词：${needle} | zhang-llmlab`}>
-  <h1 class="page-title">关键词：{needle}</h1>
-  <p class="muted intro">匹配文章 front-matter 中的 <code>tags</code> 或 <code>keywords</code>。</p>
-  <section class="block">
-    <h2 class="sub">文章</h2>
-    <ul class="link-list">
-      {posts.map((item) => (
-        <li>
-          <a class="card row" href={`/posts/${item.slug}`}>
-            <span>{item.data.title}</span>
-            <span class="muted date">{item.data.pubDate.toLocaleDateString("zh-CN")}</span>
-          </a>
-        </li>
-      ))}
-    </ul>
-  </section>
-  <section class="block">
-    <h2 class="sub">项目</h2>
-    <ul class="link-list">
-      {projects.map((item) => (
-        <li>
-          <a class="card row" href={`/projects/${item.slug}`}>
-            <span>{item.data.title}</span>
-          </a>
-        </li>
-      ))}
-    </ul>
-  </section>
+<BaseLayout title={`#${needle} | zhang-llmlab`} description={`带 ${needle} 标签的笔记与项目。`}>
+  <h1 class="page-title">#{needle}</h1>
+  <p class="page-meta">
+    <span class="stat-num">{posts.length}</span> 篇文章
+    {projects.length > 0 && (<><span class="dot">·</span><span class="stat-num">{projects.length}</span> 个项目</>)}
+  </p>
+
+  {posts.length > 0 && (
+    <section class="taxo-block">
+      <h2 class="taxo-block__title">文章</h2>
+      <ul class="taxo-list">
+        {posts.map((p) => (
+          <li class="taxo-row">
+            <time datetime={p.data.pubDate.toISOString()}>{fmtYmd(p.data.pubDate)}</time>
+            <a href={`/posts/${p.slug}`}>{p.data.title}</a>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )}
+
+  {projects.length > 0 && (
+    <section class="taxo-block">
+      <h2 class="taxo-block__title">项目</h2>
+      <ul class="taxo-list">
+        {projects.map((p) => (
+          <li class="taxo-row">
+            <span class="taxo-placeholder" aria-hidden="true">——</span>
+            <a href={`/projects/${p.slug}`}>{p.data.title}</a>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )}
+
+  {related.length > 0 && (
+    <section class="taxo-block">
+      <h2 class="taxo-block__title">相关标签</h2>
+      <div class="side-block__chips">
+        {related.map(([t]) => (
+          <a class="tag-chip" href={`/tags/${encodeURIComponent(t)}`}>{t}</a>
+        ))}
+      </div>
+    </section>
+  )}
 </BaseLayout>
 
 <style>
-  .intro {
-    margin: 0 0 1.25rem;
-    font-size: 0.92rem;
-    line-height: 1.55;
+  .page-title {
+    font-family: var(--font-mono);
+    font-weight: 500;
   }
-
-  .intro code {
-    font-size: 0.86em;
+  .page-meta {
+    margin: 0 0 var(--sp-5);
+    font-family: var(--font-mono);
+    font-size: var(--fs-sm);
+    color: var(--ink-mute);
   }
-
-  .block {
-    margin-top: 1.25rem;
+  .stat-num { color: var(--accent); }
+  .page-meta .dot {
+    margin: 0 var(--sp-2);
+    color: var(--ink-mute);
   }
-  .sub {
-    margin: 0 0 0.65rem;
-    font-size: 0.95rem;
-    font-weight: 600;
-    letter-spacing: -0.02em;
-    color: var(--text-soft);
+  .taxo-block { margin-top: var(--sp-6); }
+  .taxo-block__title {
+    margin: 0 0 var(--sp-4);
+    font-family: var(--font-mono);
+    font-size: var(--fs-xs);
+    font-weight: 500;
+    color: var(--ink-mute);
+    padding-bottom: var(--sp-2);
+    border-bottom: 1px solid var(--line);
   }
-  .link-list {
-    list-style: none;
+  .taxo-list {
     margin: 0;
     padding: 0;
-    display: grid;
-    gap: 0.65rem;
-  }
-  .link-list li {
-    margin: 0;
-  }
-  .row {
+    list-style: none;
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 1rem;
-    padding: 0.85rem 1rem;
-    border-radius: var(--radius);
-    font-weight: 500;
-    font-size: 0.95rem;
+    flex-direction: column;
+    gap: var(--sp-3);
   }
-  .date {
+  .taxo-row {
+    display: flex;
+    gap: var(--sp-4);
+    align-items: baseline;
+    font-size: var(--fs-sm);
+  }
+  .taxo-row time,
+  .taxo-placeholder {
     flex-shrink: 0;
-    font-size: 0.85rem;
-    font-weight: 400;
+    width: 6.5rem;
+    font-family: var(--font-mono);
+    color: var(--ink-mute);
     font-variant-numeric: tabular-nums;
+  }
+  .taxo-row a {
+    color: var(--ink);
+    text-decoration: none;
+    transition: color 0.15s ease;
+  }
+  .taxo-row a:hover { color: var(--accent); }
+  .side-block__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-2);
   }
 </style>

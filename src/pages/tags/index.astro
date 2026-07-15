@@ -1,0 +1,69 @@
+---
+import { getCollection } from "astro:content";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+
+const posts = (await getCollection("posts")).filter((p) => !p.data.draft);
+const projects = (await getCollection("projects")).filter((p) => !p.data.draft);
+
+const tagCounts = new Map<string, number>();
+for (const p of posts) {
+  const seen = new Set<string>();
+  for (const t of p.data.tags) seen.add(t);
+  for (const k of p.data.keywords || []) {
+    const s = String(k).trim();
+    if (s) seen.add(s);
+  }
+  for (const t of seen) tagCounts.set(t, (tagCounts.get(t) ?? 0) + 1);
+}
+for (const p of projects) {
+  for (const t of p.data.tags) tagCounts.set(t, (tagCounts.get(t) ?? 0) + 1);
+}
+
+const sorted = Array.from(tagCounts.entries()).sort(
+  (a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "zh-CN")
+);
+---
+
+<BaseLayout title="标签 | zhang-llmlab" description="全部标签，按出现频次排序。">
+  <h1 class="page-title">标签</h1>
+  <p class="page-meta">
+    共 <span class="stat-num">{sorted.length}</span> 个标签
+  </p>
+  <div class="tag-cloud">
+    {sorted.map(([t, n]) => (
+      <a class="tag-chip tag-chip--big" href={`/tags/${encodeURIComponent(t)}`}>
+        <span class="tag-chip__name">{t}</span>
+        <span class="tag-chip__count">{n}</span>
+      </a>
+    ))}
+  </div>
+</BaseLayout>
+
+<style>
+  .page-meta {
+    margin: 0 0 var(--sp-5);
+    font-family: var(--font-mono);
+    font-size: var(--fs-sm);
+    color: var(--ink-mute);
+  }
+  .stat-num { color: var(--accent); }
+  .tag-cloud {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-2);
+  }
+  .tag-chip--big {
+    padding: var(--sp-2) var(--sp-3);
+    font-size: var(--fs-sm);
+    gap: var(--sp-2);
+  }
+  .tag-chip__name { color: inherit; }
+  .tag-chip__count {
+    color: var(--ink-mute);
+    font-variant-numeric: tabular-nums;
+    font-size: var(--fs-xs);
+  }
+  .tag-chip--big:hover .tag-chip__count {
+    color: var(--ink-soft);
+  }
+</style>

@@ -1,71 +1,98 @@
 ---
 import { getCollection } from "astro:content";
 import BaseLayout from "../../layouts/BaseLayout.astro";
+import NoteRow from "../../components/NoteRow.astro";
+import { SERIES_META } from "../../lib/series-meta";
 
 export async function getStaticPaths() {
-  const posts = (await getCollection("posts")).filter((item) => !item.data.draft && item.data.series);
+  const posts = (await getCollection("posts")).filter((p) => !p.data.draft && p.data.series);
   const names = new Set<string>();
-  posts.forEach((post) => names.add(post.data.series as string));
-  // params 必须为「未编码」字符串；若在此处 encodeURIComponent，会与页面里 href 的编码叠成双重编码，线上易出现 404。
-  return Array.from(names).map((series) => ({
-    params: { series }
-  }));
+  posts.forEach((p) => names.add(p.data.series as string));
+  return Array.from(names).map((series) => ({ params: { series } }));
 }
 
 const seriesName = Astro.params.series ?? "";
+const meta = SERIES_META[seriesName];
+const displayTitle = meta?.title ?? seriesName;
+const description = meta?.description ?? "";
+
 const posts = (await getCollection("posts"))
-  .filter((item) => !item.data.draft && item.data.series === seriesName)
+  .filter((p) => !p.data.draft && p.data.series === seriesName)
   .sort((a, b) => {
-    const orderA = a.data.seriesOrder ?? Number.MAX_SAFE_INTEGER;
-    const orderB = b.data.seriesOrder ?? Number.MAX_SAFE_INTEGER;
-    if (orderA !== orderB) return orderA - orderB;
+    const oa = a.data.seriesOrder ?? Number.MAX_SAFE_INTEGER;
+    const ob = b.data.seriesOrder ?? Number.MAX_SAFE_INTEGER;
+    if (oa !== ob) return oa - ob;
     return a.data.pubDate.valueOf() - b.data.pubDate.valueOf();
   });
+
+function fmtYmd(d: Date) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+const firstDate = posts[0]?.data.pubDate;
+const lastDate = posts.reduce<Date | undefined>((acc, p) => {
+  const d = p.data.updatedDate ?? p.data.pubDate;
+  return !acc || d > acc ? d : acc;
+}, undefined);
 ---
 
-<BaseLayout title={`专题：${seriesName} | zhang-llmlab`}>
-  <h1 class="page-title">专题：{seriesName}</h1>
-  <div class="list">
-    {posts.map((post) => (
-      <a class="card row" href={`/posts/${post.slug}`}>
-        <div>
-          <h3>{post.data.seriesOrder ? `第 ${post.data.seriesOrder} 篇 · ` : ""}{post.data.title}</h3>
-          <p class="muted">{post.data.description}</p>
-        </div>
-        <span class="muted">{post.data.pubDate.toLocaleDateString("zh-CN")}</span>
-      </a>
+<BaseLayout title={`${displayTitle} | zhang-llmlab`} description={description}>
+  <p class="series-page__meta">
+    <span class="series-page__slug">{seriesName}</span>
+    <span class="dot">·</span>
+    <span class="stat-num">{posts.length}</span> 篇
+    {firstDate && <><span class="dot">·</span>首发 <span class="stat-num">{fmtYmd(firstDate)}</span></>}
+    {lastDate && <><span class="dot">·</span>最后更新 <span class="stat-num">{fmtYmd(lastDate)}</span></>}
+  </p>
+  <h1 class="page-title">{displayTitle}</h1>
+  {description && <p class="series-page__desc">{description}</p>}
+
+  <div class="notes-list">
+    {posts.map((p) => (
+      <NoteRow
+        slug={p.slug}
+        title={p.data.title}
+        description={p.data.description}
+        pubDate={p.data.pubDate}
+        category={p.data.category}
+        series={p.data.series}
+        seriesOrder={p.data.seriesOrder}
+        tags={p.data.tags}
+        variant="detail"
+      />
     ))}
   </div>
 </BaseLayout>
 
 <style>
-  .list {
-    display: grid;
-    gap: 0.85rem;
-    margin-top: 0.5rem;
+  .series-page__meta {
+    margin: 0 0 var(--sp-3);
+    font-family: var(--font-mono);
+    font-size: var(--fs-sm);
+    color: var(--ink-mute);
   }
-  .row {
-    padding: 1.05rem 1.15rem;
+  .series-page__slug {
+    color: var(--ink);
+  }
+  .stat-num { color: var(--accent); }
+  .series-page__meta .dot {
+    margin: 0 var(--sp-2);
+    color: var(--ink-mute);
+  }
+  .series-page__desc {
+    margin: 0 0 var(--sp-5);
+    font-size: var(--fs-base);
+    line-height: 1.65;
+    color: var(--ink-soft);
+    max-width: 54ch;
+    text-wrap: pretty;
+  }
+  .notes-list {
     display: flex;
-    justify-content: space-between;
-    align-items: start;
-    gap: 1rem;
-    border-radius: var(--radius);
-  }
-  .row h3 {
-    margin: 0 0 0.35rem;
-    font-size: 1.02rem;
-    font-weight: 600;
-    letter-spacing: -0.02em;
-  }
-  .row p {
-    margin: 0;
-    font-size: 0.92rem;
-    line-height: 1.55;
-  }
-  .row > span {
-    flex-shrink: 0;
-    font-size: 0.85rem;
-    font-variant-numeric: tabular-nums;
+    flex-direction: column;
+    margin-top: var(--sp-5);
   }
 </style>

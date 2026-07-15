@@ -3,97 +3,76 @@ import { getCollection } from "astro:content";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 
 export async function getStaticPaths() {
-  const posts = (await getCollection("posts")).filter((item) => !item.data.draft);
-  const projects = (await getCollection("projects")).filter((item) => !item.data.draft);
-  const categories = new Set<string>();
-
-  [...posts, ...projects].forEach((entry) => {
-    categories.add(entry.data.category);
-  });
-
-  return Array.from(categories).map((category) => ({
-    params: { category }
-  }));
+  const posts = (await getCollection("posts")).filter((p) => !p.data.draft);
+  const names = new Set<string>();
+  posts.forEach((p) => names.add(p.data.category));
+  return Array.from(names).map((category) => ({ params: { category } }));
 }
 
-// Astro 会自动对 params 里的非 ASCII 字符做 URL 编码，浏览器同理。
-// 约束：category 值不得含 "/"，否则会被当成多段路径 —— posts 的 enum 已保证，projects 添加新 category 时需注意。
-const category = Astro.params.category ?? "";
-const posts = (await getCollection("posts")).filter(
-  (item) => !item.data.draft && item.data.category === category
-);
-const projects = (await getCollection("projects")).filter(
-  (item) => !item.data.draft && item.data.category === category
-);
+const { category } = Astro.params;
+const needle = category ?? "";
+
+const posts = (await getCollection("posts"))
+  .filter((p) => !p.data.draft && p.data.category === needle)
+  .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
+
+function fmtYmd(d: Date) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
 ---
 
-<BaseLayout title={`分类：${category} | zhang-llmlab`}>
-  <h1 class="page-title">分类：{category}</h1>
-  <section class="block">
-    <h2 class="sub">文章</h2>
-    <ul class="link-list">
-      {posts.map((item) => (
-        <li>
-          <a class="card row" href={`/posts/${item.slug}`}>
-            <span>{item.data.title}</span>
-            <span class="muted date">{item.data.pubDate.toLocaleDateString("zh-CN")}</span>
-          </a>
-        </li>
-      ))}
-    </ul>
-  </section>
-  <section class="block">
-    <h2 class="sub">项目</h2>
-    <ul class="link-list">
-      {projects.map((item) => (
-        <li>
-          <a class="card row" href={`/projects/${item.slug}`}>
-            <span>{item.data.title}</span>
-          </a>
-        </li>
-      ))}
-    </ul>
-  </section>
+<BaseLayout title={`分类：${needle} | zhang-llmlab`} description={`${needle} 分类下的技术笔记。`}>
+  <h1 class="page-title">分类：{needle}</h1>
+  <p class="page-meta">
+    <span class="stat-num">{posts.length}</span> 篇文章
+  </p>
+
+  <ul class="taxo-list">
+    {posts.map((p) => (
+      <li class="taxo-row">
+        <time datetime={p.data.pubDate.toISOString()}>{fmtYmd(p.data.pubDate)}</time>
+        <a href={`/posts/${p.slug}`}>{p.data.title}</a>
+      </li>
+    ))}
+  </ul>
 </BaseLayout>
 
 <style>
-  .block {
-    margin-top: 1.1rem;
+  .page-meta {
+    margin: 0 0 var(--sp-5);
+    font-family: var(--font-mono);
+    font-size: var(--fs-sm);
+    color: var(--ink-mute);
   }
-  .block:first-of-type {
-    margin-top: 0.35rem;
-  }
-  .sub {
-    margin: 0 0 0.65rem;
-    font-size: 0.95rem;
-    font-weight: 600;
-    letter-spacing: -0.02em;
-    color: var(--text-soft);
-  }
-  .link-list {
-    list-style: none;
+  .stat-num { color: var(--accent); }
+  .taxo-list {
     margin: 0;
     padding: 0;
-    display: grid;
-    gap: 0.65rem;
-  }
-  .link-list li {
-    margin: 0;
-  }
-  .row {
+    list-style: none;
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 1rem;
-    padding: 0.85rem 1rem;
-    border-radius: var(--radius);
-    font-weight: 500;
-    font-size: 0.95rem;
+    flex-direction: column;
+    gap: var(--sp-3);
   }
-  .date {
+  .taxo-row {
+    display: flex;
+    gap: var(--sp-4);
+    align-items: baseline;
+    font-size: var(--fs-sm);
+  }
+  .taxo-row time {
     flex-shrink: 0;
-    font-size: 0.85rem;
-    font-weight: 400;
+    width: 6.5rem;
+    font-family: var(--font-mono);
+    color: var(--ink-mute);
     font-variant-numeric: tabular-nums;
   }
+  .taxo-row a {
+    color: var(--ink);
+    text-decoration: none;
+    transition: color 0.15s ease;
+  }
+  .taxo-row a:hover { color: var(--accent); }
 </style>
