@@ -14,15 +14,3 @@ export const PROFILE = {
     github: "https://github.com/zhang-llmlab"
   } as { email?: string; github?: string; music?: string }
 };
-
-/** 首页全屏头图：文案与轮播间隔（图片放在 public/images/main_page_images/） */
-export const HOME_HERO = {
-  title: "",
-  slogans: [
-    "用工程化方式记录思考，展示作品。",
-    "把笔记写成工程，把作品写成叙事。",
-    "Never put off till tomorrow what you can do today."
-  ],
-  carouselIntervalMs: 7000,
-  fadeMs: 1000
-} as const;

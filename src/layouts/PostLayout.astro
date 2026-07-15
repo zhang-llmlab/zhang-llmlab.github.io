@@ -73,7 +73,7 @@ function fmtYmd(d?: Date) {
         <p class="post-header__series">
           所属专题：<a href={`/series/${encodeURIComponent(series)}`}>{seriesTitle(series)}</a>
           <span class="mono-badge">
-            (<span>{series}</span><span class="dot-accent">·</span><span>{orderLabel}</span>)
+            (<span>{series}</span>{orderLabel && <><span class="dot-accent">·</span><span>{orderLabel}</span></>})
           </span>
         </p>
       )}
