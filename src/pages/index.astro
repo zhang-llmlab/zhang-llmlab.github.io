@@ -37,11 +37,11 @@ const totalPosts = allPosts.length;
 const totalSeries = seriesSlugs.length;
 ---
 
-<BaseLayout title="zhang-llmlab | 首页" description="记录一位工程师的技术心智：机器学习、Agent 工程、Harness。" fullWidth>
+<BaseLayout title="zhang-llmlab | 首页" description="机器学习、深度学习、大语言模型、Agent 工程、Harness——一位工程师沿 AI 系统的脉络，记录每一层的原理、取舍与实现。" fullWidth>
   <div class="home-layout">
     <SiteHeader
       title="zhang-llmlab"
-      tagline="记录一位工程师的技术心智：机器学习、Agent 工程、Harness。"
+      tagline="机器学习、深度学习、大语言模型、Agent 工程、Harness——一位工程师沿 AI 系统的脉络，记录每一层的原理、取舍与实现。"
       postCount={totalPosts}
       seriesCount={totalSeries}
       latestUpdated={latestUpdated instanceof Date ? latestUpdated : new Date(latestUpdated)}
