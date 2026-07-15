@@ -1,181 +1,337 @@
 ---
-import fs from "node:fs";
-import path from "node:path";
 import { getCollection } from "astro:content";
 import BaseLayout from "../layouts/BaseLayout.astro";
-import Nav from "../components/Nav.astro";
-import HomeHero from "../components/HomeHero.astro";
-import Sidebar from "../components/Sidebar.astro";
-import { HOME_HERO } from "../site.config";
-import { getSidebarData } from "../lib/sidebar-data";
+import SiteHeader from "../components/SiteHeader.astro";
+import NoteRow from "../components/NoteRow.astro";
+import { SERIES_META } from "../lib/series-meta";
+import { PROFILE } from "../site.config";
 
-const imageDir = path.join(process.cwd(), "public", "images", "main_page_images");
-const imageExt = new Set([".jpg", ".jpeg", ".png", ".webp", ".gif", ".avif"]);
+const allPosts = (await getCollection("posts")).filter((p) => !p.data.draft);
 
-let slideUrls: string[] = [];
-try {
-  slideUrls = fs
-    .readdirSync(imageDir)
-    .filter((name) => imageExt.has(path.extname(name).toLowerCase()))
-    .sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" }))
-    .map((name) => `/images/main_page_images/${encodeURIComponent(name)}`);
-} catch {
-  slideUrls = [];
-}
+// Sort by pubDate desc for "latest 10"
+const sortedByDate = [...allPosts].sort(
+  (a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf()
+);
+const latest = sortedByDate.slice(0, 10);
+const latestUpdated = sortedByDate[0]?.data.updatedDate ?? sortedByDate[0]?.data.pubDate ?? new Date();
 
-const posts = (await getCollection("posts"))
-  .filter((item) => !item.data.draft)
-  .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf())
-  .slice(0, 3);
+// Build series matrix data
+const seriesSlugs = Object.keys(SERIES_META);
+const seriesMatrix = seriesSlugs.map((slug) => {
+  const posts = allPosts
+    .filter((p) => p.data.series === slug)
+    .sort((a, b) => (a.data.seriesOrder ?? 999) - (b.data.seriesOrder ?? 999));
+  return {
+    slug,
+    title: SERIES_META[slug].title,
+    count: posts.length,
+    topThree: posts.slice(0, 3).map((p) => ({
+      slug: p.slug,
+      title: p.data.title,
+      order: p.data.seriesOrder
+    }))
+  };
+});
 
-const projects = (await getCollection("projects"))
-  .filter((item) => !item.data.draft)
-  .slice(0, 4);
-
-const totalPosts = (await getCollection("posts")).filter((item) => !item.data.draft).length;
-const totalProjects = (await getCollection("projects")).filter((item) => !item.data.draft).length;
-
-const heroSlogans = [...HOME_HERO.slogans];
-
-const sidebarData = await getSidebarData();
+const totalPosts = allPosts.length;
+const totalSeries = seriesSlugs.length;
 ---
 
-<BaseLayout title="zhang-llmlab | 首页" description="个人网站、文章与作品集" fullWidth>
-  <Nav variant="overlay" currentPath={Astro.url.pathname} />
-  <HomeHero
-    slides={slideUrls}
-    title={HOME_HERO.title}
-    slogans={heroSlogans}
-    carouselIntervalMs={HOME_HERO.carouselIntervalMs}
-    fadeMs={HOME_HERO.fadeMs}
-  />
+<BaseLayout title="zhang-llmlab | 首页" description="记录一位工程师的技术心智：机器学习、Agent 工程、Harness。" fullWidth>
+  <div class="home-layout">
+    <SiteHeader
+      title="zhang-llmlab"
+      tagline="记录一位工程师的技术心智：机器学习、Agent 工程、Harness。"
+      postCount={totalPosts}
+      seriesCount={totalSeries}
+      latestUpdated={latestUpdated instanceof Date ? latestUpdated : new Date(latestUpdated)}
+    />
 
-  <main id="home-main" class="home-main">
-    <div class="container home-inner layout-with-sidebar">
-      <div class="layout-main">
-      <section class="stats-strip card" aria-label="站点概览">
-        <div class="stat-cell">
-          <strong>{totalPosts}</strong><span class="muted">文章</span>
-        </div>
-        <div class="stat-cell">
-          <strong>{totalProjects}</strong><span class="muted">项目</span>
-        </div>
-      </section>
-
-      <section class="block">
-        <div class="section-head">
-          <h2>最新文章</h2>
-          <a href="/posts">查看全部</a>
-        </div>
-        <div class="grid">
-          {posts.map((post) => (
-            <a class="card item" href={`/posts/${post.slug}`}>
-              <span class="item-meta">{post.data.pubDate.toLocaleDateString("zh-CN")}</span>
-              <h3>{post.data.title}</h3>
-              <p class="muted">{post.data.description}</p>
-            </a>
-          ))}
-        </div>
-      </section>
-
-      <section class="block">
-        <div class="section-head">
-          <h2>精选项目</h2>
-          <a href="/projects">查看全部</a>
-        </div>
-        <div class="grid">
-          {projects.map((project) => (
-            <a class="card item" href={`/projects/${project.slug}`}>
-              <h3>{project.data.title}</h3>
-              <p class="muted">{project.data.description}</p>
-            </a>
-          ))}
-        </div>
-      </section>
+    <section class="home-block" aria-labelledby="block-series">
+      <div class="home-block__head">
+        <h2 id="block-series" class="home-block__title">专题矩阵</h2>
+        <a class="home-block__more" href="/series">全部专题 →</a>
       </div>
-      <Sidebar series={sidebarData.series} keywords={sidebarData.keywords} />
-    </div>
-  </main>
+      <div class="series-grid">
+        {seriesMatrix.map((s) => (
+          <a class="series-cell" href={`/series/${encodeURIComponent(s.slug)}`}>
+            <div class="series-cell__head">
+              <span class="series-cell__slug">{s.slug}</span>
+              <span class="series-cell__count">{s.count} 篇</span>
+            </div>
+            <div class="series-cell__rule" aria-hidden="true"></div>
+            <h3 class="series-cell__title">{s.title}</h3>
+            {s.topThree.length > 0 && (
+              <ul class="series-cell__list">
+                {s.topThree.map((p) => (
+                  <li>
+                    <span class="series-cell__order">
+                      {p.order != null ? String(p.order).padStart(2, "0") : "··"}
+                    </span>
+                    <span class="series-cell__ptitle">{p.title}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <span class="series-cell__cta">查看专题 →</span>
+          </a>
+        ))}
+      </div>
+    </section>
+
+    <section class="home-block" aria-labelledby="block-latest">
+      <div class="home-block__head">
+        <h2 id="block-latest" class="home-block__title">最新笔记</h2>
+        <a class="home-block__more" href="/posts">全部 {totalPosts} 篇 →</a>
+      </div>
+      <div class="notes-list">
+        {latest.map((p) => (
+          <NoteRow
+            slug={p.slug}
+            title={p.data.title}
+            description={p.data.description}
+            pubDate={p.data.pubDate}
+            category={p.data.category}
+            series={p.data.series}
+            seriesOrder={p.data.seriesOrder}
+            tags={p.data.tags}
+            variant="index"
+          />
+        ))}
+      </div>
+    </section>
+
+    <section class="home-block about-block" aria-labelledby="block-about">
+      <div class="about-card">
+        <img class="about-card__avatar" src={PROFILE.avatar} alt="" width="56" height="56" />
+        <div class="about-card__body">
+          <p class="about-card__name">{PROFILE.name}</p>
+          <p class="about-card__bio">工程师 · 记录学习、复盘、工具用法</p>
+          <p class="about-card__fields">
+            <span class="about-card__label">领域：</span>AI 算法<span class="dot">·</span>Agent 工程
+          </p>
+          <p class="about-card__links">
+            {PROFILE.social.github && <a href={PROFILE.social.github}>GitHub</a>}
+            {PROFILE.social.github && <span class="dot">·</span>}
+            <a href="/rss.xml">RSS</a>
+          </p>
+        </div>
+      </div>
+    </section>
+  </div>
 </BaseLayout>
 
 <style>
-  .home-main {
-    scroll-margin-top: 5.5rem;
-    padding-top: 2.5rem;
-    padding-bottom: 0.5rem;
+  .home-layout {
+    max-width: 920px;
+    margin: 0 auto;
+    padding-inline: var(--sp-2);
   }
 
-  .home-inner {
-    padding-top: 0.25rem;
+  .home-block {
+    margin-top: var(--sp-7);
   }
 
-  .stats-strip {
+  .home-block__head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: var(--sp-4);
+    margin-bottom: var(--sp-5);
+    padding-bottom: var(--sp-3);
+    border-bottom: 1px solid var(--line);
+  }
+
+  .home-block__title {
+    margin: 0;
+    font-size: var(--fs-xl);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+  }
+
+  .home-block__more {
+    font-family: var(--font-mono);
+    font-size: var(--fs-sm);
+    color: var(--link);
+    text-decoration: none;
+    transition: color 0.15s ease;
+  }
+  .home-block__more:hover {
+    color: var(--link-hover);
+  }
+
+  /* ── Series matrix ─────────────────────────────────── */
+  .series-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 0.75rem;
-    padding: 1rem 1.15rem;
-    margin-bottom: 0.25rem;
-    border-radius: var(--radius-lg);
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: var(--sp-4);
   }
-
-  .stat-cell {
+  .series-cell {
     display: flex;
     flex-direction: column;
-    gap: 0.3rem;
-    align-items: flex-start;
+    gap: var(--sp-3);
+    padding: var(--sp-5);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    color: inherit;
+    text-decoration: none;
+    background: var(--bg-elevated);
+    transition: border-color 0.2s var(--ease-out), transform 0.2s var(--ease-out);
+  }
+  .series-cell:hover {
+    border-color: var(--accent-line);
+    transform: translateY(-2px);
+  }
+  .series-cell:focus-visible {
+    outline: 2px solid var(--link);
+    outline-offset: 3px;
+  }
+  .series-cell__head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-family: var(--font-mono);
+    font-size: var(--fs-sm);
+  }
+  .series-cell__slug {
+    color: var(--ink);
+    letter-spacing: -0.01em;
+  }
+  .series-cell__count {
+    color: var(--ink-mute);
+  }
+  .series-cell__rule {
+    width: 2ch;
+    height: 1px;
+    background: var(--accent-line);
+  }
+  .series-cell__title {
+    margin: 0;
+    font-size: var(--fs-lg);
+    font-weight: 600;
+    color: var(--ink);
+    letter-spacing: -0.01em;
+    line-height: 1.35;
+    text-wrap: balance;
+  }
+  .series-cell__list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-2);
+  }
+  .series-cell__list li {
+    display: flex;
+    gap: var(--sp-3);
+    font-size: var(--fs-sm);
+    color: var(--ink-soft);
+    line-height: 1.4;
+  }
+  .series-cell__order {
+    flex-shrink: 0;
+    font-family: var(--font-mono);
+    color: var(--ink-mute);
+    font-variant-numeric: tabular-nums;
+  }
+  .series-cell__ptitle {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .series-cell__cta {
+    margin-top: auto;
+    padding-top: var(--sp-2);
+    font-family: var(--font-mono);
+    font-size: var(--fs-xs);
+    color: var(--link);
+  }
+
+  /* ── Latest notes list (uses NoteRow) ─────────────── */
+  .notes-list {
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── About block ─────────────────────────────────── */
+  .about-block {
+    margin-bottom: var(--sp-6);
+  }
+  .about-card {
+    display: flex;
+    gap: var(--sp-4);
+    max-width: 640px;
+    padding: var(--sp-5);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--bg-elevated);
+  }
+  .about-card__avatar {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    border: 1px solid var(--line);
+  }
+  .about-card__body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-2);
     min-width: 0;
   }
-
-  .stat-cell strong {
-    font-size: 1.35rem;
-    font-variant-numeric: tabular-nums;
-    letter-spacing: -0.02em;
-  }
-
-  .block {
-    margin-top: 1.35rem;
-  }
-
-  .grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(248px, 1fr));
-    gap: 1rem;
-  }
-
-  .item {
-    padding: 1.05rem 1.15rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.4rem;
-    min-height: 7.5rem;
-  }
-
-  .item-meta {
-    font-size: 0.8rem;
-    font-variant-numeric: tabular-nums;
-    color: var(--text-muted);
-    letter-spacing: 0.02em;
-  }
-
-  .item h3 {
+  .about-card__name {
     margin: 0;
-    font-size: 1.06rem;
-    font-weight: 650;
-    letter-spacing: -0.02em;
-    line-height: 1.35;
-    color: var(--text);
+    font-size: var(--fs-lg);
+    font-weight: 700;
+    color: var(--ink);
   }
-
-  .item p {
+  .about-card__bio {
     margin: 0;
-    font-size: 0.92rem;
-    line-height: 1.55;
-    flex: 1;
+    font-size: var(--fs-sm);
+    color: var(--ink-soft);
+  }
+  .about-card__fields {
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: var(--fs-sm);
+    color: var(--ink-soft);
+  }
+  .about-card__label {
+    color: var(--ink-mute);
+  }
+  .about-card__links {
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: var(--fs-sm);
+  }
+  .about-card__links a {
+    color: var(--link);
+    text-decoration: none;
+    transition: color 0.15s ease;
+  }
+  .about-card__links a:hover {
+    color: var(--link-hover);
+  }
+  .about-card .dot,
+  .about-card__fields .dot {
+    margin: 0 var(--sp-2);
+    color: var(--ink-mute);
   }
 
   @media (max-width: 560px) {
-    .stats-strip {
-      grid-template-columns: 1fr;
+    .home-layout {
+      padding-inline: 0;
+    }
+    .home-block {
+      margin-top: var(--sp-6);
+    }
+    .home-block__head {
+      flex-wrap: wrap;
+    }
+    .about-card {
+      padding: var(--sp-4);
     }
   }
 </style>
