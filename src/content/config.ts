@@ -16,7 +16,8 @@ const SERIES = [
   "ml-basics",
   "agent-dev",
   "skills",
-  "harness"
+  "harness",
+  "nginx"
 ] as const;
 
 const posts = defineCollection({

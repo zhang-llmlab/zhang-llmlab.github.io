@@ -27,6 +27,10 @@ export const SERIES_META: Record<string, SeriesMetaEntry> = {
   harness: {
     title: "Harness 工程",
     description: "把 LLM 变成 Agent 的运行时外壳。"
+  },
+  nginx: {
+    title: "Nginx 入门与实践",
+    description: "从 Web 服务器到反向代理、负载均衡：概念、配置与工程实践。"
   }
 };
 
